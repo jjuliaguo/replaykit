@@ -1,5 +1,22 @@
 # Deploying the ReplayKit demo
 
+## Live now: Vercel only
+
+**https://replaykit.vercel.app**: the frontend and API run on one Vercel project (`replaykit`, scope `jjuliaguos-projects`). It was deployed from the `deploy-setup` branch with the Vercel CLI and is not connected to Git, so pushes don't redeploy it.
+
+- `npm run build:vercel` writes `.vercel/output`, using the Build Output API. It contains the static UI, one Node 22 function that bundles the same request handler as the local server (`src/web/vercel-function.ts`) with copies of `examples/` and `fixtures/`, and the routes. Because the UI and API share one origin, no CORS is needed.
+- Redeploy from `replaykit-integrated` on this branch:
+
+```bash
+npx vercel@latest deploy --prod --scope jjuliaguos-projects
+```
+
+- Railway was the original plan for the API. The account's Railway trial has expired, so the API runs on Vercel instead. The Railway setup below still works once a Railway plan is active.
+
+---
+
+## Alternative: API on Railway, frontend on Vercel
+
 Branch: `deploy-setup`. It is short-lived: test the deployment from this branch, then merge it into `main` if it works.
 
 ```
