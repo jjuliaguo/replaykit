@@ -6,3 +6,5 @@ reports/
 .claude/
 frontend/dist/
 .vercel/
+.vercel
+.env*
