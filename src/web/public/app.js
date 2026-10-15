@@ -16,8 +16,20 @@ function el(tag, attrs = {}, ...children) {
   return node;
 }
 
+const SERVER_HELP =
+  "Can't reach the ReplayKit server. Start it from the replaykit-integrated folder with `npm run web`, then reload this page.";
+
 async function api(path, body) {
-  const res = await fetch(path, body === undefined ? {} : { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  if (location.protocol === "file:") {
+    throw new Error("This page was opened as a file. Run `npm run web` in replaykit-integrated and open http://127.0.0.1:4321 instead.");
+  }
+  let res;
+  try {
+    res = await fetch(path, body === undefined ? {} : { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  } catch {
+    // fetch only throws when no HTTP response arrived: the server is down or unreachable.
+    throw new Error(SERVER_HELP);
+  }
   const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
   if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
   return data;
