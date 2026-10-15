@@ -22,7 +22,8 @@
     "demo": "tsx src/replay/cli.ts demo",
     "replay": "tsx src/replay/cli.ts replay",
     "compare": "tsx src/replay/cli.ts compare",
-    "server": "tsx src/replay/cli.ts server"
+    "server": "tsx src/replay/cli.ts server",
+    "e2e": "tsx scripts/e2e.ts"
   },
   "dependencies": {
     "lucide-react": "^1.57.0",

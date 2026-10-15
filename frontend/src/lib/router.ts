@@ -10,7 +10,7 @@ export interface Route {
 }
 
 function parse(): Route {
-  const raw = window.location.hash.replace(/^#/, "") || "/calls";
+  const raw = window.location.hash.replace(/^#/, "") || "/overview";
   const [p = "", q = ""] = raw.split("?");
   return { path: p.split("/").filter(Boolean).map(decodeURIComponent), query: new URLSearchParams(q) };
 }

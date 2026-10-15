@@ -78,6 +78,10 @@ export interface ReplayResponse {
   html: string;
 }
 
+export type { GoldenPathResult, Step as GoldenStep } from "../../src/e2e/golden-path.js";
+import type { GoldenPathResult } from "../../src/e2e/golden-path.js";
+export type E2EResponse = GoldenPathResult & { example: string | null; durationMs: number };
+
 export class ApiError extends Error {}
 
 async function request<T>(path: string, body?: unknown): Promise<T> {
@@ -99,5 +103,6 @@ export const api = {
   fixtures: () => request<FixtureSummary[]>("/api/fixtures"),
   fixture: (ref: string) => request<ReplayFixture>(`/api/fixture?ref=${encodeURIComponent(ref)}`),
   agents: () => request<AgentInfo[]>("/api/agents"),
+  e2e: (body: { example?: string; log?: unknown } = {}) => request<E2EResponse>("/api/e2e", body),
   replay: (body: { fixture: ReplayFixture; agents: string[] } | { fixtureRef: string; agents: string[] }) => request<ReplayResponse>("/api/replay", body),
 };

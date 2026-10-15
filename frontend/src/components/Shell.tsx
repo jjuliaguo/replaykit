@@ -1,4 +1,4 @@
-import { ChevronsUpDown, FlaskConical, Inbox, PanelLeft, PhoneCall, Upload } from "lucide-react";
+import { ChevronsUpDown, FlaskConical, Inbox, LayoutGrid, PanelLeft, PhoneCall, Upload } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { href } from "../lib/router";
 import { cx } from "./ui";
@@ -25,6 +25,7 @@ export function Shell({
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const groups: Array<{ label: string; items: NavItem[] }> = [
+    { label: "", items: [{ id: "overview", label: "Overview", icon: <LayoutGrid size={16} strokeWidth={1.6} /> }] },
     {
       label: "Monitor",
       items: [
@@ -67,7 +68,7 @@ export function Shell({
         <nav className="flex-1 overflow-y-auto px-2.5 pb-3">
           {groups.map((g) => (
             <div key={g.label} className="mt-3">
-              {!collapsed && <div className="px-2 pb-1 text-[12.5px] text-muted">{g.label}</div>}
+              {!collapsed && g.label && <div className="px-2 pb-1 text-[12.5px] text-muted">{g.label}</div>}
               {g.items.map((item) => {
                 const active = section === item.id;
                 return (

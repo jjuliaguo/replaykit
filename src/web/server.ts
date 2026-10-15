@@ -18,6 +18,7 @@ import type { AddressInfo } from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
+import { runGoldenPath } from "../e2e/golden-path.js";
 import { classifyToolResult } from "../extractor/analysis/tool-outcome.js";
 import { extract } from "../extractor/extract.js";
 import { EXTRACTOR_VERSION } from "../extractor/version.js";
@@ -31,6 +32,8 @@ export const DEFAULT_STATIC_DIR = path.join(ROOT, "frontend/dist");
 const EXAMPLES_DIR = path.join(ROOT, "examples/call-logs");
 const FIXTURE_DIRS = [path.join(ROOT, "fixtures"), path.join(ROOT, "fixtures/generated")];
 const MAX_BODY = 2_000_000;
+/** The one test the MVP guarantees end to end. */
+export const GOLDEN_EXAMPLE = "booking-false-confirmation";
 
 /** Agents the replay engine can run offline. "live" is deliberately absent. */
 export const AGENTS = {
@@ -253,6 +256,15 @@ export function createWebServer(options: { staticDir?: string } = {}): http.Serv
       switch (route) {
         case "GET /api/calls":
           return send(res, 200, listCalls());
+        case "POST /api/e2e": {
+          const { example, log } = ((await readBody(req)) ?? {}) as { example?: string; log?: unknown };
+          const name = example ?? (log === undefined ? GOLDEN_EXAMPLE : undefined);
+          const raw =
+            log ?? readJson(knownFile(listExamples().map((e) => ({ ref: e.name, file: path.join(EXAMPLES_DIR, `${e.name}.json`) })), name));
+          const started = performance.now();
+          const r = await runGoldenPath({ log: raw, fallbackId: name ?? "pasted-log" });
+          return send(res, 200, { ...r, example: name ?? null, durationMs: Math.round((performance.now() - started) * 10) / 10 });
+        }
         case "GET /api/health":
           return send(res, 200, { ok: true, extractorVersion: EXTRACTOR_VERSION, mode: "offline" });
         case "GET /api/agents":

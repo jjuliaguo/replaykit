@@ -6,10 +6,12 @@ import { Button, Tabs } from "./components/ui";
 import { CallsPage, type ImportedLog } from "./pages/CallsPage";
 import { ImportPage } from "./pages/ImportPage";
 import { IssuesPage } from "./pages/IssuesPage";
+import { OverviewPage } from "./pages/OverviewPage";
 import { TestsPage } from "./pages/TestsPage";
 import { navigate, useRoute } from "./lib/router";
 
 const TITLES: Record<string, string> = {
+  overview: "Overview",
   calls: "Calls",
   issues: "Issues",
   tests: "Regression tests",
@@ -18,7 +20,7 @@ const TITLES: Record<string, string> = {
 
 export function App() {
   const route = useRoute();
-  const section = route.path[0] && TITLES[route.path[0]] ? route.path[0] : "calls";
+  const section = route.path[0] && TITLES[route.path[0]] ? route.path[0] : "overview";
   const [calls, setCalls] = useState<CallSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [imported, setImported] = useState<Record<string, ImportedLog>>({});
@@ -52,6 +54,7 @@ export function App() {
         </>
       }
     >
+      {section === "overview" && <OverviewPage calls={calls} />}
       {section === "calls" && <CallsPage route={route} calls={calls} imported={imported} error={error} />}
       {section === "issues" && <IssuesPage calls={calls ? allSummaries : null} error={error} />}
       {section === "tests" && <TestsPage route={route} calls={calls} imported={imported} />}
