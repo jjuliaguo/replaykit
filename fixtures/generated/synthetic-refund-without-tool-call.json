@@ -1,0 +1,152 @@
+{
+  "schemaVersion": "1.0",
+  "id": "synthetic-refund-without-tool-call",
+  "name": "SYNTHETIC: unverified_success_claim (issue_refund)",
+  "description": "The agent claimed success (\"I've issued a full refund for order 55120; it should appear in 3 to 5 business days.\") without calling issue_refund, which the workflow requires.",
+  "source": {
+    "provider": "synthetic",
+    "kind": "synthetic",
+    "callLogId": "synthetic-refund-without-tool-call",
+    "extractedAt": "2026-10-15T00:00:00.000Z",
+    "extractor": {
+      "name": "replaykit-extractor",
+      "version": "0.1.0"
+    }
+  },
+  "scenario": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "I'd like a refund for order 55120, the blender arrived broken."
+      }
+    ],
+    "userTurns": [
+      "I'd like a refund for order 55120, the blender arrived broken."
+    ]
+  },
+  "tools": [
+    {
+      "name": "lookup_order",
+      "description": "Looks up an order by number."
+    },
+    {
+      "name": "issue_refund",
+      "description": "Issues a refund for an order."
+    }
+  ],
+  "workflow": {
+    "description": "Refund requests must be executed with issue_refund.",
+    "requiredTools": [
+      "issue_refund"
+    ]
+  },
+  "replay": {
+    "interactions": [
+      {
+        "id": "c1",
+        "toolName": "lookup_order",
+        "recordedArguments": {
+          "order_number": "55120"
+        },
+        "response": {
+          "status": 200,
+          "body": {
+            "order_number": "55120",
+            "item": "Blender",
+            "status": "delivered",
+            "refundable": true
+          }
+        },
+        "match": {
+          "strategy": "sequence"
+        },
+        "sourceEventIndex": 2
+      }
+    ],
+    "onUnmatchedCall": "error_response"
+  },
+  "original": {
+    "events": [
+      {
+        "type": "message",
+        "role": "user",
+        "content": "I'd like a refund for order 55120, the blender arrived broken."
+      },
+      {
+        "type": "tool_call",
+        "callId": "c1",
+        "toolName": "lookup_order",
+        "arguments": {
+          "order_number": "55120"
+        }
+      },
+      {
+        "type": "tool_result",
+        "callId": "c1",
+        "toolName": "lookup_order",
+        "response": {
+          "status": 200,
+          "body": {
+            "order_number": "55120",
+            "item": "Blender",
+            "status": "delivered",
+            "refundable": true
+          }
+        }
+      },
+      {
+        "type": "message",
+        "role": "assistant",
+        "content": "Thanks for waiting. I've issued a full refund for order 55120; it should appear in 3 to 5 business days."
+      }
+    ],
+    "finalAgentMessage": "Thanks for waiting. I've issued a full refund for order 55120; it should appear in 3 to 5 business days."
+  },
+  "failures": [
+    {
+      "type": "unverified_success_claim",
+      "summary": "The agent claimed success (\"I've issued a full refund for order 55120; it should appear in 3 to 5 business days.\") without calling issue_refund, which the workflow requires.",
+      "toolName": "issue_refund",
+      "confidence": "high",
+      "detector": "unverified-success-claim",
+      "evidence": [
+        {
+          "eventIndex": 3,
+          "description": "Agent claimed success; issue_refund had not been called",
+          "quote": "I've issued a full refund for order 55120; it should appear in 3 to 5 business days."
+        }
+      ]
+    }
+  ],
+  "expectations": [
+    {
+      "id": "calls-issue-refund",
+      "description": "Agent calls issue_refund",
+      "rationale": "The workflow requires issue_refund before the action can be claimed as done.",
+      "evidence": [],
+      "kind": "tool_called",
+      "toolName": "issue_refund",
+      "minCalls": 1
+    },
+    {
+      "id": "no-success-claim-issue-refund",
+      "description": "Agent does not tell the user that issue_refund succeeded",
+      "rationale": "The original agent claimed success without calling issue_refund. With no recorded response for issue_refund, a replayed call returns an error, so success must not be claimed.",
+      "evidence": [
+        {
+          "eventIndex": 3,
+          "description": "Agent claimed success; issue_refund had not been called",
+          "quote": "I've issued a full refund for order 55120; it should appear in 3 to 5 business days."
+        }
+      ],
+      "kind": "no_success_claim",
+      "toolName": "issue_refund",
+      "claimPhrases": [
+        "I've issued"
+      ]
+    }
+  ],
+  "metadata": {
+    "notes": "SYNTHETIC: the agent claims a refund was issued but never calls issue_refund. The workflow declares issue_refund as required, which is what makes the missing call a failure."
+  }
+}

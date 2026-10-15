@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0",
+  "id": "synthetic-multi-turn-success",
+  "provider": "synthetic",
+  "kind": "synthetic",
+  "notes": "SYNTHETIC negative control: a chatty multi-turn call with filler messages, idioms (“no problem”, “sorry for the wait”), typographic apostrophes, an availability check that returns available:false for one slot, and a booking that succeeds. No failure should be reported.",
+  "tools": [
+    { "name": "check_availability", "description": "Lists open slots for a date." },
+    { "name": "book_appointment", "description": "Books an appointment slot for the caller." }
+  ],
+  "events": [
+    { "type": "message", "role": "system", "content": "You are the receptionist for Lakeside Dental." },
+    { "type": "message", "role": "user", "content": "Hi, is anything open Friday afternoon?" },
+    { "type": "message", "role": "assistant", "content": "No problem, let me take a look." },
+    { "type": "tool_call", "callId": "c1", "toolName": "check_availability", "arguments": { "date": "2026-10-16" } },
+    { "type": "tool_result", "callId": "c1", "toolName": "check_availability", "response": { "status": 200, "body": { "date": "2026-10-16", "slots": [{ "time": "15:00", "available": false }, { "time": "16:00", "available": true }] } } },
+    { "type": "message", "role": "assistant", "content": "Sorry for the wait! 3 PM is taken, but 4 PM is open. Would that work?" },
+    { "type": "message", "role": "user", "content": "Yes, 4 PM please. It’s for Jordan Lee." },
+    { "type": "message", "role": "assistant", "content": "One moment." },
+    { "type": "tool_call", "callId": "c2", "toolName": "book_appointment", "arguments": { "date": "2026-10-16", "time": "16:00", "name": "Jordan Lee" } },
+    { "type": "tool_result", "callId": "c2", "toolName": "book_appointment", "response": { "status": 201, "body": { "success": true, "booking_id": "BK-7731", "message": "Booked" } } },
+    { "type": "message", "role": "assistant", "content": "You’re all set, Jordan! Your appointment is confirmed for Friday at 4 PM, and your booking ID is BK 7731." }
+  ]
+}

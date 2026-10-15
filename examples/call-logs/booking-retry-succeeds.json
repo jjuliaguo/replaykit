@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "1.0",
+  "id": "synthetic-booking-retry-succeeds",
+  "provider": "synthetic",
+  "kind": "synthetic",
+  "notes": "SYNTHETIC negative control: the first slot fails, the agent retries with another time, the retry succeeds, and the agent confirms the second booking. No failure should be reported.",
+  "tools": [{ "name": "book_appointment", "description": "Books an appointment slot for the caller." }],
+  "events": [
+    { "type": "message", "role": "user", "content": "Book me for Friday at 3, or 4 if 3 is taken." },
+    { "type": "tool_call", "callId": "c1", "toolName": "book_appointment", "arguments": { "date": "2026-10-16", "time": "15:00" } },
+    { "type": "tool_result", "callId": "c1", "toolName": "book_appointment", "response": { "status": 200, "body": { "success": false, "booking_id": null, "message": "Slot unavailable" } } },
+    { "type": "tool_call", "callId": "c2", "toolName": "book_appointment", "arguments": { "date": "2026-10-16", "time": "16:00" } },
+    { "type": "tool_result", "callId": "c2", "toolName": "book_appointment", "response": { "status": 200, "body": { "success": true, "booking_id": "BK-2291", "message": "Booked" } } },
+    { "type": "message", "role": "assistant", "content": "3 PM was taken, so I booked you for 4 PM on Friday. Your booking ID is BK-2291." }
+  ]
+}
