@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+/*
+ * Warm-neutral, flat, bordered UI: off-white canvas, tinted sidebar, ink
+ * text, 1px rules, black primary buttons, underline tabs. No gradients,
+ * no glow, no drop shadows beyond a hairline.
+ */
+@theme {
+  --font-sans: "Inter", "Segoe UI Variable Text", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Mono", "Cascadia Code", ui-monospace, Consolas, monospace;
+
+  --color-canvas: #faf9f7;
+  --color-chrome: #efede9;
+  --color-sidebar: #f5e9dc;
+  --color-sidebar-hover: #efdfcf;
+  --color-panel: #ffffff;
+  --color-well: #f4f2ee;
+  --color-line: #e5e1db;
+  --color-line-strong: #d3cec6;
+  --color-ink: #1c1b1a;
+  --color-ink-2: #3a3835;
+  --color-muted: #6e6a64;
+  --color-subtle: #9a958e;
+  --color-brand: #c4661b;
+
+  --color-ok: #2c7a4b;
+  --color-ok-bg: #e5f1e9;
+  --color-err: #b3311d;
+  --color-err-bg: #fbe8e3;
+  --color-warn: #9a5b00;
+  --color-warn-bg: #fbefd8;
+  --color-info: #2f5bb5;
+  --color-info-bg: #e7edf9;
+  --color-mark: #fde9b8;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-canvas font-sans text-[14px] leading-[1.5] text-ink antialiased;
+  }
+  ::selection {
+    background: var(--color-mark);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 1px;
+  }
+}
+
+@utility dotgrid {
+  background-color: var(--color-canvas);
+  background-image: radial-gradient(var(--color-line-strong) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+@keyframes flash {
+  0% {
+    background-color: var(--color-mark);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+.flash {
+  animation: flash 1.6s ease-out;
+}

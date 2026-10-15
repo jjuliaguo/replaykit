@@ -6,7 +6,7 @@ ReplayKit is a developer tool that converts failed voice-agent calls into reprod
 
 ## Integrated build
 
-This branch (`integrated`) combines Claude's extractor and Cursor's replay engine, with a local web app. See [INTEGRATION.md](INTEGRATION.md).
+This build combines Claude's extractor and Cursor's replay engine, with a local web app. See [INTEGRATION.md](INTEGRATION.md). On the `frontend` branch the web app is a React + Vite + Tailwind UI; see [FRONTEND.md](FRONTEND.md).
 
 ```bash
 npm install

@@ -1,4 +1,7 @@
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import type http from "node:http";
+import os from "node:os";
+import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createWebServer, listen } from "../server.js";
 
@@ -23,15 +26,69 @@ const post = async (p: string, body: unknown): Promise<{ status: number; body: J
   return { status: res.status, body: (await res.json()) as Json };
 };
 
-describe("static frontend", () => {
-  it.each([
-    ["/", "text/html"],
-    ["/app.js", "text/javascript"],
-    ["/styles.css", "text/css"],
-  ])("serves %s", async (p, type) => {
-    const r = await get(p);
-    expect(r.status).toBe(200);
-    expect(r.type).toContain(type);
+describe("static frontend (built SPA)", () => {
+  let spa: http.Server;
+  let spaBase: string;
+  let unbuilt: http.Server;
+  let unbuiltBase: string;
+
+  beforeAll(async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "replaykit-spa-"));
+    mkdirSync(path.join(dir, "assets"));
+    writeFileSync(path.join(dir, "index.html"), "<!doctype html><title>spa</title>");
+    writeFileSync(path.join(dir, "assets", "app-abc.js"), "console.log(1)");
+    spa = createWebServer({ staticDir: dir });
+    spaBase = await listen(spa, 0);
+    unbuilt = createWebServer({ staticDir: path.join(dir, "missing") });
+    unbuiltBase = await listen(unbuilt, 0);
+  });
+  afterAll(async () => {
+    await new Promise<void>((r) => spa.close(() => r()));
+    await new Promise<void>((r) => unbuilt.close(() => r()));
+  });
+
+  it("serves index.html and hashed assets with the right types", async () => {
+    const index = await fetch(spaBase + "/");
+    expect(index.headers.get("content-type")).toContain("text/html");
+    expect(await index.text()).toContain("<title>spa</title>");
+    const js = await fetch(spaBase + "/assets/app-abc.js");
+    expect(js.headers.get("content-type")).toContain("text/javascript");
+    expect(js.headers.get("cache-control")).toContain("immutable");
+  });
+
+  it("falls back to index.html for client routes, but 404s missing assets", async () => {
+    expect(await (await fetch(spaBase + "/calls/anything")).text()).toContain("<title>spa</title>");
+    expect((await fetch(spaBase + "/assets/missing.js")).status).toBe(404);
+  });
+
+  it("never serves files outside the build directory", async () => {
+    for (const p of ["/../package.json", "/%2e%2e/package.json", "/assets/..%2F..%2Fpackage.json"]) {
+      const res = await fetch(spaBase + p);
+      expect(await res.text()).not.toContain('"name": "replaykit"');
+    }
+  });
+
+  it("explains how to build when the frontend is missing", async () => {
+    const res = await fetch(unbuiltBase + "/");
+    expect(res.status).toBe(503);
+    expect(await res.text()).toMatch(/npm run build:web/);
+  });
+});
+
+describe("calls endpoint", () => {
+  it("runs the extractor over every example call", async () => {
+    const calls = (await get("/api/calls")).body as Array<{ name: string; findings: Array<{ type: string }>; fixtureId: string | null; error: string | null }>;
+    const booking = calls.find((c) => c.name === "booking-false-confirmation")!;
+    expect(booking.findings.map((f) => f.type)).toEqual(["false_success_claim"]);
+    expect(booking.fixtureId).toBe("synthetic-booking-false-confirmation");
+    expect(calls.find((c) => c.name === "booking-handled-correctly")!.findings).toEqual([]);
+    expect(calls.every((c) => c.error === null)).toBe(true);
+  });
+
+  it("returns the extractor's verdict for every tool result, including on clean calls", async () => {
+    const r = await post("/api/extract", { example: "booking-handled-correctly" });
+    expect(r.body.findings).toEqual([]);
+    expect(r.body.outcomes["2"]).toMatchObject({ outcome: "failure", signals: [{ path: "response.body.success", value: "false" }] });
   });
 });
 

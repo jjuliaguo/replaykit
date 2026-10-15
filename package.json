@@ -8,10 +8,13 @@
     "node": ">=22"
   },
   "scripts": {
-    "web": "tsx src/web/server.ts",
+    "web": "npm run build:web && tsx src/web/server.ts",
+    "serve": "tsx src/web/server.ts",
+    "dev:web": "vite --config frontend/vite.config.ts",
+    "build:web": "vite build --config frontend/vite.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p frontend",
     "check": "npm run typecheck && npm test",
     "extract": "tsx src/extractor/cli.ts",
     "fixtures": "tsx src/extractor/cli.ts examples/call-logs --out fixtures/generated --extracted-at 2026-10-15T00:00:00.000Z",
@@ -22,13 +25,22 @@
     "server": "tsx src/replay/cli.ts server"
   },
   "dependencies": {
+    "lucide-react": "^1.57.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
     "ajv": "^8.20.0",
+    "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
+    "vite": "^8.3.4",
     "vitest": "^5.0.4"
   },
   "exports": {

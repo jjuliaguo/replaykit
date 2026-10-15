@@ -18,6 +18,7 @@ import type { AddressInfo } from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
+import { classifyToolResult } from "../extractor/analysis/tool-outcome.js";
 import { extract } from "../extractor/extract.js";
 import { EXTRACTOR_VERSION } from "../extractor/version.js";
 import { renderHtmlReport } from "../replay/report/html-report.js";
@@ -25,7 +26,8 @@ import { runReplaySuite, type AgentSpec } from "../replay/pipeline.js";
 import { parseFixture } from "../shared/types.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const PUBLIC_DIR = path.join(ROOT, "src/web/public");
+/** Built React app (frontend/). Built with `npm run build:web`. */
+export const DEFAULT_STATIC_DIR = path.join(ROOT, "frontend/dist");
 const EXAMPLES_DIR = path.join(ROOT, "examples/call-logs");
 const FIXTURE_DIRS = [path.join(ROOT, "fixtures"), path.join(ROOT, "fixtures/generated")];
 const MAX_BODY = 2_000_000;
@@ -116,13 +118,80 @@ function send(res: http.ServerResponse, status: number, body: unknown, type = "a
   res.end(typeof body === "string" ? body : JSON.stringify(body));
 }
 
-const STATIC: Record<string, string> = {
-  "/": "index.html",
-  "/index.html": "index.html",
-  "/app.js": "app.js",
-  "/styles.css": "styles.css",
+const MIME: Record<string, string> = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".json": "application/json; charset=utf-8",
+  ".woff2": "font/woff2",
+  ".png": "image/png",
+  ".ico": "image/x-icon",
 };
-const MIME: Record<string, string> = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8" };
+
+/**
+ * Serve the built single-page app. Only files inside `staticDir` are served;
+ * unknown non-asset paths fall back to index.html for client-side routing.
+ */
+function serveStatic(res: http.ServerResponse, staticDir: string, pathname: string): void {
+  const index = path.join(staticDir, "index.html");
+  let indexExists = false;
+  try {
+    indexExists = statSync(index).isFile();
+  } catch {
+    /* not built */
+  }
+  if (!indexExists) {
+    return send(res, 503, "ReplayKit frontend is not built yet. Run: npm run build:web", "text/plain; charset=utf-8");
+  }
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(pathname);
+  } catch {
+    throw new HttpError(400, "bad path");
+  }
+  const target = path.resolve(staticDir, "." + path.posix.normalize("/" + decoded));
+  if (target !== staticDir && !target.startsWith(staticDir + path.sep)) throw new HttpError(404, "not found");
+  let file = target;
+  try {
+    if (!statSync(file).isFile()) file = index;
+  } catch {
+    // Missing assets are real 404s; anything else is a client-side route.
+    if (path.extname(decoded)) throw new HttpError(404, "not found");
+    file = index;
+  }
+  const type = MIME[path.extname(file)] ?? "application/octet-stream";
+  const body = readFileSync(file);
+  res.writeHead(200, {
+    "content-type": type,
+    "x-content-type-options": "nosniff",
+    "cache-control": file === index ? "no-store" : "public, max-age=31536000, immutable",
+  });
+  res.end(body);
+}
+
+/** Every example call log, run through the extractor: the "Calls" list. */
+function listCalls() {
+  return listExamples().map((e) => {
+    try {
+      const r = extract(readJson(path.join(EXAMPLES_DIR, `${e.name}.json`)), { fallbackId: e.name });
+      const tools = [...new Set(r.callLog.events.flatMap((ev) => (ev.type === "tool_call" ? [ev.toolName] : [])))];
+      return {
+        ...e,
+        provider: r.callLog.provider,
+        startedAt: r.callLog.startedAt ?? null,
+        events: r.callLog.events.length,
+        toolCalls: r.callLog.events.filter((ev) => ev.type === "tool_call").length,
+        tools,
+        findings: r.findings.map((f) => ({ type: f.type, confidence: f.confidence, toolName: f.toolName ?? null, summary: f.summary, messageIndex: f.messageIndex })),
+        fixtureId: r.fixture?.id ?? null,
+        error: null,
+      };
+    } catch (error) {
+      return { ...e, provider: "unknown", startedAt: null, events: 0, toolCalls: 0, tools: [], findings: [], fixtureId: null, error: (error as Error).message };
+    }
+  });
+}
 
 async function handleExtract(body: unknown) {
   const { log, example, minConfidence } = (body ?? {}) as { log?: unknown; example?: string; minConfidence?: string };
@@ -137,9 +206,15 @@ async function handleExtract(body: unknown) {
   try {
     const started = performance.now();
     const result = extract(raw, { fallbackId, ...(minConfidence ? { minConfidence } : {}) });
+    // The extractor's own success/failure/unknown verdict for every tool result,
+    // keyed by event index, so the UI never re-implements that logic.
+    const outcomes = Object.fromEntries(
+      result.callLog.events.flatMap((e, i) => (e.type === "tool_result" ? [[i, classifyToolResult(e)]] : [])),
+    );
     return {
       durationMs: Math.round((performance.now() - started) * 10) / 10,
-      callLog: { id: result.callLog.id, provider: result.callLog.provider, kind: result.callLog.kind, events: result.callLog.events },
+      outcomes,
+      callLog: { id: result.callLog.id, provider: result.callLog.provider, kind: result.callLog.kind, startedAt: result.callLog.startedAt ?? null, notes: result.callLog.notes ?? null, workflow: result.callLog.workflow ?? null, tools: result.callLog.tools, events: result.callLog.events },
       findings: result.findings.map(({ messageIndex, ...f }) => ({ ...f, messageIndex })),
       fixture: result.fixture,
     };
@@ -166,16 +241,18 @@ async function handleReplay(body: unknown) {
   return { durationMs: Math.round((performance.now() - started) * 10) / 10, agents: ids, report, html: renderHtmlReport(report) };
 }
 
-export function createWebServer(): http.Server {
+export function createWebServer(options: { staticDir?: string } = {}): http.Server {
+  const staticDir = path.resolve(options.staticDir ?? DEFAULT_STATIC_DIR);
   return http.createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", "http://localhost");
     const route = `${req.method} ${url.pathname}`;
     try {
-      if (req.method === "GET" && STATIC[url.pathname]) {
-        const file = path.join(PUBLIC_DIR, STATIC[url.pathname]!);
-        return send(res, 200, readFileSync(file, "utf8"), MIME[path.extname(file)]);
+      if (req.method === "GET" && !url.pathname.startsWith("/api/")) {
+        return serveStatic(res, staticDir, url.pathname);
       }
       switch (route) {
+        case "GET /api/calls":
+          return send(res, 200, listCalls());
         case "GET /api/health":
           return send(res, 200, { ok: true, extractorVersion: EXTRACTOR_VERSION, mode: "offline" });
         case "GET /api/agents":
