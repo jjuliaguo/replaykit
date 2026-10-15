@@ -34,3 +34,19 @@ git diff claude cursor --stat
 - Execution traces and regression results are never fabricated
 - Successful HTTP responses that carry application-level failures are supported, not only HTTP 4xx/5xx
 - Small, modular, testable code
+
+## On this branch (`claude`)
+
+The extractor and the shared fixture format. Start with [HANDOFF.md](HANDOFF.md), then [docs/EXTRACTOR.md](docs/EXTRACTOR.md) and [docs/FIXTURE_FORMAT.md](docs/FIXTURE_FORMAT.md).
+
+```bash
+npm install
+```
+
+```bash
+npm run check
+```
+
+```bash
+npm run extract -- examples/call-logs --dry-run
+```

@@ -11,7 +11,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "schema": "tsx scripts/generate-schemas.ts"
+    "schema": "tsx scripts/generate-schemas.ts",
+    "extract": "tsx src/extractor/cli.ts",
+    "fixtures": "tsx src/extractor/cli.ts examples/call-logs --out fixtures/generated --extracted-at 2026-10-15T00:00:00.000Z",
+    "check": "npm run typecheck && npm test"
   },
   "dependencies": {
     "openai": "^7.34.0",

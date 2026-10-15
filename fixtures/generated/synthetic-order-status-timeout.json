@@ -1,0 +1,165 @@
+{
+  "schemaVersion": "1.0",
+  "id": "synthetic-order-status-timeout",
+  "name": "SYNTHETIC: unhandled_tool_error (get_shipping_status)",
+  "description": "get_shipping_status failed (tool call failed: timeout), and the agent's reply did not tell the user: \"Your package is on its way and should arrive in a couple of days.\"",
+  "source": {
+    "provider": "synthetic",
+    "kind": "synthetic",
+    "callLogId": "synthetic-order-status-timeout",
+    "extractedAt": "2026-10-15T00:00:00.000Z",
+    "extractor": {
+      "name": "replaykit-extractor",
+      "version": "0.1.0"
+    }
+  },
+  "scenario": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "Where is my order 88231?"
+      }
+    ],
+    "userTurns": [
+      "Where is my order 88231?"
+    ]
+  },
+  "tools": [
+    {
+      "name": "get_shipping_status",
+      "description": "Returns the shipping status for an order."
+    }
+  ],
+  "replay": {
+    "interactions": [
+      {
+        "id": "c1",
+        "toolName": "get_shipping_status",
+        "recordedArguments": {
+          "order_number": "88231"
+        },
+        "error": {
+          "kind": "timeout",
+          "message": "Request timed out after 10000 ms"
+        },
+        "match": {
+          "strategy": "sequence"
+        },
+        "sourceEventIndex": 2
+      }
+    ],
+    "onUnmatchedCall": "error_response"
+  },
+  "original": {
+    "events": [
+      {
+        "type": "message",
+        "role": "user",
+        "content": "Where is my order 88231?"
+      },
+      {
+        "type": "tool_call",
+        "callId": "c1",
+        "toolName": "get_shipping_status",
+        "arguments": {
+          "order_number": "88231"
+        }
+      },
+      {
+        "type": "tool_result",
+        "callId": "c1",
+        "toolName": "get_shipping_status",
+        "error": {
+          "kind": "timeout",
+          "message": "Request timed out after 10000 ms"
+        }
+      },
+      {
+        "type": "message",
+        "role": "assistant",
+        "content": "Your package is on its way and should arrive in a couple of days."
+      }
+    ],
+    "finalAgentMessage": "Your package is on its way and should arrive in a couple of days."
+  },
+  "failures": [
+    {
+      "type": "unhandled_tool_error",
+      "summary": "get_shipping_status failed (tool call failed: timeout), and the agent's reply did not tell the user: \"Your package is on its way and should arrive in a couple of days.\"",
+      "toolName": "get_shipping_status",
+      "confidence": "medium",
+      "detector": "unhandled-tool-error",
+      "evidence": [
+        {
+          "eventIndex": 2,
+          "description": "get_shipping_status failed (tool call failed: timeout)",
+          "quote": "timeout",
+          "path": "error.kind"
+        },
+        {
+          "eventIndex": 3,
+          "description": "Agent's next reply contains no failure acknowledgement",
+          "quote": "Your package is on its way and should arrive in a couple of days."
+        }
+      ]
+    }
+  ],
+  "expectations": [
+    {
+      "id": "calls-get-shipping-status",
+      "description": "Agent calls get_shipping_status",
+      "rationale": "The original agent called get_shipping_status; the failure depends on its recorded error.",
+      "evidence": [],
+      "kind": "tool_called",
+      "toolName": "get_shipping_status",
+      "minCalls": 1
+    },
+    {
+      "id": "acknowledges-failure-get-shipping-status",
+      "description": "Agent tells the user that get_shipping_status did not succeed",
+      "rationale": "get_shipping_status failed and the original agent did not tell the user.",
+      "evidence": [
+        {
+          "eventIndex": 2,
+          "description": "get_shipping_status failed (tool call failed: timeout)",
+          "quote": "timeout",
+          "path": "error.kind"
+        },
+        {
+          "eventIndex": 3,
+          "description": "Agent's next reply contains no failure acknowledgement",
+          "quote": "Your package is on its way and should arrive in a couple of days."
+        }
+      ],
+      "kind": "acknowledges_failure",
+      "toolName": "get_shipping_status",
+      "signals": [
+        "Request timed out after 10000 ms"
+      ]
+    },
+    {
+      "id": "no-success-claim-get-shipping-status",
+      "description": "Agent does not tell the user that get_shipping_status succeeded",
+      "rationale": "get_shipping_status failed, so the agent must not claim it succeeded.",
+      "evidence": [
+        {
+          "eventIndex": 2,
+          "description": "get_shipping_status failed (tool call failed: timeout)",
+          "quote": "timeout",
+          "path": "error.kind"
+        },
+        {
+          "eventIndex": 3,
+          "description": "Agent's next reply contains no failure acknowledgement",
+          "quote": "Your package is on its way and should arrive in a couple of days."
+        }
+      ],
+      "kind": "no_success_claim",
+      "toolName": "get_shipping_status",
+      "claimPhrases": []
+    }
+  ],
+  "metadata": {
+    "notes": "SYNTHETIC: the shipping API times out and the agent answers as if it had data, without telling the caller anything went wrong."
+  }
+}

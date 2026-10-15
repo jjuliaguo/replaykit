@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.0",
+  "id": "synthetic-booking-handled-correctly",
+  "provider": "synthetic",
+  "kind": "synthetic",
+  "notes": "SYNTHETIC negative control: same failing tool response, but the agent handles it correctly. The extractor must report no failure.",
+  "tools": [{ "name": "book_appointment", "description": "Books an appointment slot for the caller." }],
+  "events": [
+    { "type": "message", "role": "user", "content": "Can you book me in for Friday at 3 PM?" },
+    { "type": "tool_call", "callId": "call_1", "toolName": "book_appointment", "arguments": { "date": "2026-10-16", "time": "15:00" } },
+    { "type": "tool_result", "callId": "call_1", "toolName": "book_appointment", "response": { "status": 200, "body": { "success": false, "booking_id": null, "message": "Slot unavailable" } } },
+    { "type": "message", "role": "assistant", "content": "I'm sorry, Friday at 3 PM is unavailable. Would Friday at 4 PM or Monday morning work instead?" }
+  ]
+}
