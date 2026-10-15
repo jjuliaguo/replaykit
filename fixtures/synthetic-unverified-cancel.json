@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "1.0",
+  "id": "synthetic-unverified-cancel-001",
+  "name": "SYNTHETIC: agent claims a cancellation without calling the required tool",
+  "description": "Hand-written example, not real Bland data. A missing tool call is a failure here only because workflow.requiredTools names cancel_subscription.",
+  "source": {
+    "provider": "synthetic",
+    "kind": "synthetic",
+    "callLogId": "synthetic-unverified-cancel-001",
+    "capturedAt": "2026-10-15T09:20:00Z",
+    "extractedAt": "2026-10-15T09:20:00Z",
+    "extractor": { "name": "hand-written", "version": "0.0.0" }
+  },
+  "scenario": {
+    "messages": [
+      { "role": "system", "content": "You are a subscription assistant. Use cancel_subscription before telling the customer that a plan is cancelled." },
+      { "role": "user", "content": "Please cancel my Pro plan." }
+    ],
+    "userTurns": ["Please cancel my Pro plan."]
+  },
+  "tools": [
+    {
+      "name": "cancel_subscription",
+      "description": "Cancels the customer's current subscription.",
+      "parameters": {
+        "type": "object",
+        "properties": { "plan": { "type": "string" } },
+        "required": ["plan"]
+      },
+      "endpoint": { "method": "POST", "url": "https://example.invalid/cancel-subscription" }
+    }
+  ],
+  "workflow": {
+    "description": "Cancellation is not done until cancel_subscription is invoked.",
+    "requiredTools": ["cancel_subscription"]
+  },
+  "replay": {
+    "interactions": [],
+    "onUnmatchedCall": "error_response"
+  },
+  "original": {
+    "events": [
+      { "type": "message", "role": "system", "content": "You are a subscription assistant. Use cancel_subscription before telling the customer that a plan is cancelled." },
+      { "type": "message", "role": "user", "content": "Please cancel my Pro plan." },
+      { "type": "message", "role": "assistant", "content": "Your subscription has been cancelled. You're all set." }
+    ],
+    "finalAgentMessage": "Your subscription has been cancelled. You're all set."
+  },
+  "failures": [
+    {
+      "type": "unverified_success_claim",
+      "summary": "The agent said the subscription was cancelled without calling cancel_subscription.",
+      "toolName": "cancel_subscription",
+      "confidence": "high",
+      "detector": "hand-written",
+      "evidence": [
+        { "eventIndex": 2, "description": "Agent claimed cancellation with no tool_call in the log", "quote": "has been cancelled" }
+      ]
+    }
+  ],
+  "expectations": [
+    { "id": "calls-cancel_subscription", "kind": "tool_called", "toolName": "cancel_subscription", "description": "Agent calls cancel_subscription", "rationale": "workflow.requiredTools lists this tool; a missing call is therefore a failure." },
+    { "id": "no-false-success-cancel_subscription", "kind": "no_success_claim", "toolName": "cancel_subscription", "claimPhrases": ["has been cancelled"], "description": "Agent does not claim cancellation succeeded without doing it", "rationale": "No tool result exists to support the claim." }
+  ]
+}

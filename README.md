@@ -14,7 +14,17 @@ This repository holds two independent implementations of the same brief, built w
 | `claude` | Claude Code | Claude's implementation.                |
 | `cursor` | Cursor      | Cursor's implementation.                |
 
-Each tool works only on its own branch. To compare the two:
+Each tool works only on its own branch. On `cursor`, the replay engine, evaluator, and HTML report live in `src/replay/`. They consume the shared fixture schema in `src/shared/` (see `docs/FIXTURE_FORMAT.md` and `docs/REPLAY_ENGINE.md`).
+
+```bash
+npm install
+npm test
+npm run demo
+```
+
+Open `reports/index.html`. The demo is offline and uses labeled synthetic fixtures only.
+
+To compare the two branches:
 
 ```bash
 git diff main claude --stat
