@@ -8,7 +8,7 @@
 - Redeploy from `replaykit-integrated` on this branch:
 
 ```bash
-npx vercel@latest deploy --prod --scope jjuliaguos-projects
+npx vercel@64.2.0 deploy --prod --scope jjuliaguos-projects
 ```
 
 - Railway was the original plan for the API. The account's Railway trial has expired, so the API runs on Vercel instead. The Railway setup below still works once a Railway plan is active.
