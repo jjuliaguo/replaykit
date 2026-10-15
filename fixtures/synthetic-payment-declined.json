@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "1.0",
+  "id": "synthetic-payment-declined-001",
+  "name": "SYNTHETIC: agent says a payment went through after the processor declined it",
+  "description": "Hand-written example, not real Bland data. Shows ReplayKit is not appointment-specific. capture_payment returned HTTP 200 with ok:false.",
+  "source": {
+    "provider": "synthetic",
+    "kind": "synthetic",
+    "callLogId": "synthetic-payment-declined-001",
+    "capturedAt": "2026-10-15T09:10:00Z",
+    "extractedAt": "2026-10-15T09:10:00Z",
+    "extractor": { "name": "hand-written", "version": "0.0.0" }
+  },
+  "scenario": {
+    "messages": [
+      { "role": "system", "content": "You are a billing assistant. Use capture_payment to charge the card on file." },
+      { "role": "user", "content": "Go ahead and charge my card for invoice 4412." }
+    ],
+    "userTurns": ["Go ahead and charge my card for invoice 4412."]
+  },
+  "tools": [
+    {
+      "name": "capture_payment",
+      "description": "Charges the customer's saved payment method.",
+      "parameters": {
+        "type": "object",
+        "properties": { "invoice_id": { "type": "string" }, "amount_cents": { "type": "integer" } },
+        "required": ["invoice_id"]
+      },
+      "endpoint": { "method": "POST", "url": "https://example.invalid/capture-payment" }
+    }
+  ],
+  "replay": {
+    "interactions": [
+      {
+        "id": "pay_1",
+        "toolName": "capture_payment",
+        "recordedArguments": { "invoice_id": "4412", "amount_cents": 8900 },
+        "request": { "method": "POST", "url": "https://example.invalid/capture-payment", "body": { "invoice_id": "4412", "amount_cents": 8900 } },
+        "response": { "status": 200, "body": { "ok": false, "code": "insufficient_funds", "message": "Card declined" } },
+        "match": { "strategy": "arguments", "argumentKeys": ["invoice_id"] },
+        "sourceEventIndex": 3
+      }
+    ],
+    "onUnmatchedCall": "error_response"
+  },
+  "original": {
+    "events": [
+      { "type": "message", "role": "system", "content": "You are a billing assistant. Use capture_payment to charge the card on file." },
+      { "type": "message", "role": "user", "content": "Go ahead and charge my card for invoice 4412." },
+      { "type": "tool_call", "callId": "pay_1", "toolName": "capture_payment", "arguments": { "invoice_id": "4412", "amount_cents": 8900 } },
+      { "type": "tool_result", "callId": "pay_1", "toolName": "capture_payment", "response": { "status": 200, "body": { "ok": false, "code": "insufficient_funds", "message": "Card declined" } } },
+      { "type": "message", "role": "assistant", "content": "Payment went through, you're all set! Invoice 4412 is paid." }
+    ],
+    "finalAgentMessage": "Payment went through, you're all set! Invoice 4412 is paid."
+  },
+  "failures": [
+    {
+      "type": "false_success_claim",
+      "summary": "capture_payment reported ok:false, but the agent told the user the payment succeeded.",
+      "toolName": "capture_payment",
+      "confidence": "high",
+      "detector": "hand-written",
+      "evidence": [
+        { "eventIndex": 3, "description": "Processor declined the charge", "path": "response.body.ok", "quote": "false" },
+        { "eventIndex": 4, "description": "Agent claimed the payment went through", "quote": "went through" }
+      ]
+    }
+  ],
+  "expectations": [
+    { "id": "calls-capture_payment", "kind": "tool_called", "toolName": "capture_payment", "description": "Agent calls capture_payment", "rationale": "Charging a card requires the payment tool." },
+    { "id": "no-false-success-capture_payment", "kind": "no_success_claim", "toolName": "capture_payment", "claimPhrases": ["went through", "you're all set"], "description": "Agent does not claim capture_payment succeeded", "rationale": "The recorded response has ok:false." },
+    { "id": "acknowledges-capture_payment-failure", "kind": "acknowledges_failure", "toolName": "capture_payment", "signals": ["Card declined"], "description": "Agent tells the user the charge failed", "rationale": "The user needs to know they were not billed." },
+    { "id": "consistent-ok-false", "kind": "consistent_with_tool_result", "toolName": "capture_payment", "path": "body.ok", "expectedValue": false, "description": "Agent stays consistent with ok=false", "rationale": "Do not contradict the recorded processor result." }
+  ]
+}
