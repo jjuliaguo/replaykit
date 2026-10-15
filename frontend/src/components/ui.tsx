@@ -64,7 +64,7 @@ export function StatusCode({ status, appFailure }: { status?: number; appFailure
 /** Underline tabs, like the top bar of the reference UI. */
 export function Tabs<T extends string>({ tabs, value, onChange, className }: { tabs: Array<{ id: T; label: ReactNode }>; value: T; onChange: (id: T) => void; className?: string }) {
   return (
-    <div role="tablist" className={cx("flex items-end gap-6", className)}>
+    <div role="tablist" className={cx("-mx-1 flex items-end gap-5 overflow-x-auto px-1 [scrollbar-width:none] md:gap-6", className)}>
       {tabs.map((t) => (
         <button
           key={t.id}
@@ -72,7 +72,7 @@ export function Tabs<T extends string>({ tabs, value, onChange, className }: { t
           aria-selected={t.id === value}
           onClick={() => onChange(t.id)}
           className={cx(
-            "-mb-px border-b-2 pb-2.5 text-[13.5px] transition-colors",
+            "-mb-px shrink-0 border-b-2 pb-2.5 text-[13.5px] whitespace-nowrap transition-colors",
             t.id === value ? "border-ink font-medium text-ink" : "border-transparent text-muted hover:text-ink",
           )}
         >

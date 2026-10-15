@@ -48,7 +48,7 @@ function highlightQuotes(text: string, quotes: string[]): ReactNode {
 
 function Gutter({ children, at }: { children: ReactNode; at?: string }) {
   return (
-    <div className="w-14 shrink-0 pt-0.5 font-mono text-[11.5px] text-subtle tabular-nums">
+    <div className="flex shrink-0 gap-1.5 pt-0.5 font-mono text-[11.5px] text-subtle tabular-nums sm:block sm:w-14">
       <div>{children}</div>
       {at && <div className="text-[10.5px]">{at}</div>}
     </div>
@@ -64,7 +64,7 @@ function relTime(t0: string | undefined, at: string | undefined): string | undef
 
 function RoleTag({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "tool" }) {
   return (
-    <div className={cx("w-[72px] shrink-0 pt-0.5 text-[11px] font-semibold tracking-wide uppercase", tone === "tool" ? "text-info" : "text-muted")}>{children}</div>
+    <div className={cx("shrink-0 pt-0.5 text-[11px] font-semibold tracking-wide uppercase sm:w-[72px]", tone === "tool" ? "text-info" : "text-muted")}>{children}</div>
   );
 }
 
@@ -124,10 +124,12 @@ function ToolRow({
   const indexLabel = pair.resultIndex !== null ? `${pad(pair.callIndex)}→${pad(pair.resultIndex)}` : pad(pair.callIndex);
 
   return (
-    <div data-event={pair.callIndex} data-event-2={pair.resultIndex ?? undefined} className={cx("border-l-2 py-2.5 pr-4 pl-3", notes.length ? "border-err" : failed ? "border-warn" : "border-transparent", focused && "flash")}>
-      <div className="flex gap-0">
-        <Gutter at={relTime(t0, call.at)}>{indexLabel}</Gutter>
-        <RoleTag tone="tool">Tool</RoleTag>
+    <div data-event={pair.callIndex} data-event-2={pair.resultIndex ?? undefined} className={cx("border-l-2 py-2.5 pr-3 pl-3 sm:pr-4", notes.length ? "border-err" : failed ? "border-warn" : "border-transparent", focused && "flash")}>
+      <div className="flex flex-col gap-1 sm:flex-row sm:gap-0">
+        <div className="flex gap-2 sm:contents">
+          <Gutter at={relTime(t0, call.at)}>{indexLabel}</Gutter>
+          <RoleTag tone="tool">Tool</RoleTag>
+        </div>
         <div className="min-w-0 flex-1">
           <button onClick={onToggle} className="flex w-full flex-wrap items-center gap-x-2.5 gap-y-1 text-left">
             {expanded ? <ChevronDown size={14} className="text-subtle" /> : <ChevronRight size={14} className="text-subtle" />}
@@ -154,7 +156,7 @@ function ToolRow({
             </span>
           </button>
           {signals.length > 0 && (
-            <div className="mt-1 pl-6 font-mono text-[12px] text-err">
+            <div className="mt-1 pl-0 font-mono text-[12px] break-all text-err sm:pl-6">
               {signals.map((s, i) => (
                 <div key={i}>
                   {s.path} = {s.value}
@@ -162,10 +164,10 @@ function ToolRow({
               ))}
             </div>
           )}
-          {notes.length > 0 && <div className="pl-6"><IssueTags notes={notes} onSelect={onSelectFinding} /></div>}
+          {notes.length > 0 && <div className="sm:pl-6"><IssueTags notes={notes} onSelect={onSelectFinding} /></div>}
 
           {expanded && (
-            <div className="mt-3 grid gap-3 pl-6 xl:grid-cols-2">
+            <div className="mt-3 grid gap-3 sm:pl-6 xl:grid-cols-2">
               <div className="min-w-0">
                 <div className="mb-1.5 flex items-center justify-between">
                   <Label>Request · arguments</Label>
@@ -283,9 +285,11 @@ export function TraceView({
         }
         if (r.kind === "orphan") {
           return (
-            <div key={`o${r.index}`} data-event={r.index} className="flex py-2.5 pr-4 pl-3">
-              <Gutter>{pad(r.index)}</Gutter>
-              <RoleTag>{r.event.type.replace("_", " ")}</RoleTag>
+            <div key={`o${r.index}`} data-event={r.index} className="flex flex-col gap-1 py-2.5 pr-3 pl-3 sm:flex-row sm:gap-0 sm:pr-4">
+              <div className="flex gap-2 sm:contents">
+                <Gutter>{pad(r.index)}</Gutter>
+                <RoleTag>{r.event.type.replace("_", " ")}</RoleTag>
+              </div>
               <div className="min-w-0 flex-1">
                 <Badge tone="warn">no matching tool_call</Badge>
                 <div className="mt-1.5">
@@ -299,9 +303,11 @@ export function TraceView({
         const n = notes.get(r.index) ?? [];
         const isAgent = e.role === "assistant";
         return (
-          <div key={`m${r.index}`} data-event={r.index} className={cx("flex border-l-2 py-2.5 pr-4 pl-3", n.length ? "border-err" : "border-transparent", focusEvent === r.index && "flash")}>
+          <div key={`m${r.index}`} data-event={r.index} className={cx("flex flex-col gap-1 border-l-2 py-2.5 pr-3 pl-3 sm:flex-row sm:gap-0 sm:pr-4", n.length ? "border-err" : "border-transparent", focusEvent === r.index && "flash")}>
+            <div className="flex gap-2 sm:contents">
             <Gutter at={relTime(t0, e.at)}>{pad(r.index)}</Gutter>
             <RoleTag>{isAgent ? "Agent" : e.role === "user" ? "Caller" : "System"}</RoleTag>
+            </div>
             <div className="min-w-0 flex-1">
               <div className={cx("text-[13.5px] whitespace-pre-wrap", e.role === "system" && "text-muted", !isAgent && e.role !== "system" && "text-ink-2")}>
                 {highlightQuotes(e.content, n.map((x) => x.quote ?? ""))}

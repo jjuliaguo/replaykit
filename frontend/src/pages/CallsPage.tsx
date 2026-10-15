@@ -1,4 +1,6 @@
-import { ArrowRight, Download, Play, Search } from "lucide-react";
+import { ArrowRight, ChevronLeft, Download, Play, Search } from "lucide-react";
+import { exampleCopy } from "../lib/examples";
+import { useIsDesktop } from "../lib/media";
 import { FAILURE_LABEL, pad } from "../lib/format";
 import { useEffect, useMemo, useState } from "react";
 import { api, type CallSummary, type ExtractResponse } from "../api";
@@ -23,7 +25,7 @@ function CallList({ calls, selected }: { calls: CallSummary[]; selected?: string
   const shown = calls.filter((c) => {
     if (filter === "issues" && c.findings.length === 0) return false;
     if (filter === "clean" && c.findings.length > 0) return false;
-    const hay = `${c.id} ${c.name} ${c.tools.join(" ")} ${c.provider}`.toLowerCase();
+    const hay = `${exampleCopy(c.name).title} ${c.id} ${c.name} ${c.tools.join(" ")} ${c.provider}`.toLowerCase();
     return hay.includes(q.toLowerCase());
   });
   return (
@@ -61,8 +63,8 @@ function CallList({ calls, selected }: { calls: CallSummary[]; selected?: string
             >
               <div className="flex items-center gap-2">
                 <Dot tone={c.error ? "warn" : c.findings.length ? (high ? "err" : "warn") : "ok"} />
-                <span className="min-w-0 font-mono text-[12.5px] [overflow-wrap:anywhere]" title={c.id}>
-                  {c.id}
+                <span className="min-w-0 text-[13px] leading-snug font-medium [overflow-wrap:anywhere]" title={c.id}>
+                  {exampleCopy(c.name, c.findings.length > 0).title}
                 </span>
                 <span className="ml-auto shrink-0">
                   {c.error ? (
@@ -76,7 +78,8 @@ function CallList({ calls, selected }: { calls: CallSummary[]; selected?: string
                   )}
                 </span>
               </div>
-              <div className="mt-0.5 truncate pl-3.5 text-[12px] text-muted">
+              <div className="mt-0.5 truncate pl-3.5 font-mono text-[11.5px] text-subtle">{c.id}</div>
+              <div className="truncate pl-3.5 text-[12px] text-muted">
                 {c.provider} · {c.kind} · {c.events} events · {c.tools.length ? c.tools.join(", ") : "no tools"}
               </div>
             </a>
@@ -160,11 +163,17 @@ function CallDetail({ name, raw, tab, focusEvent }: { name: string; raw?: unknow
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-line bg-canvas px-6 pt-5">
+      <div className="border-b border-line bg-canvas px-4 pt-4 md:px-6 md:pt-5">
+        <a href={href(["calls"])} className="mb-2 inline-flex items-center gap-1 text-[12.5px] text-muted hover:text-ink md:hidden">
+          <ChevronLeft size={14} /> All calls
+        </a>
         <div className="flex flex-wrap items-start gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="truncate font-mono text-[16px] font-semibold">{callLog.id}</h1>
+              <h1 className="text-[16px] leading-snug font-semibold">{exampleCopy(name, findings.length > 0).title}</h1>
+            </div>
+            <div className="mt-0.5 flex items-center gap-1">
+              <span className="font-mono text-[12px] break-all text-muted">{callLog.id}</span>
               <CopyButton text={callLog.id} label="ID" />
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-muted">
@@ -217,7 +226,7 @@ function CallDetail({ name, raw, tab, focusEvent }: { name: string; raw?: unknow
         />
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-5">
+      <div className="flex-1 overflow-y-auto px-3 py-4 md:px-6 md:py-5">
         {tab === "trace" && (
           <TraceView
             events={callLog.events}
@@ -245,18 +254,20 @@ export function CallsPage({ route, calls, imported, error }: { route: Route; cal
   const selected = route.path[1];
   const tab = (["trace", "issues", "test", "raw"].includes(route.query.get("tab") ?? "") ? route.query.get("tab") : "trace") as DetailTab;
   const event = route.query.get("event");
+  const isDesktop = useIsDesktop();
   const all = useMemo(() => [...Object.values(imported).map((i) => i.summary), ...(calls ?? [])], [calls, imported]);
 
   useEffect(() => {
-    if (!selected && all[0]) navigate(["calls", all.find((c) => c.findings.length)?.name ?? all[0].name], { tab: "trace" });
-  }, [selected, all]);
+    // On desktop, open the first call with an issue. On phones, show the list first.
+    if (!selected && all[0] && isDesktop) navigate(["calls", all.find((c) => c.findings.length)?.name ?? all[0].name], { tab: "trace" });
+  }, [selected, all, isDesktop]);
 
   return (
-    <div className="grid h-full grid-cols-[320px_minmax(0,1fr)]">
-      <div className="min-h-0 border-r border-line bg-canvas">
+    <div className="grid h-full grid-cols-1 md:grid-cols-[320px_minmax(0,1fr)]">
+      <div className={cx("min-h-0 border-line bg-canvas md:block md:border-r", selected ? "hidden" : "block")}>
         {error ? <div className="p-3"><ErrorNote error={error} /></div> : calls === null ? <div className="p-4 text-[13px] text-muted">Loading calls…</div> : <CallList calls={all} selected={selected} />}
       </div>
-      <div className="min-h-0 min-w-0">
+      <div className={cx("min-h-0 min-w-0 md:block", selected ? "block" : "hidden")}>
         {selected ? (
           <CallDetail key={selected} name={selected} raw={imported[selected]?.raw} tab={tab} focusEvent={event !== null ? Number(event) : undefined} />
         ) : (

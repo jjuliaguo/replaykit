@@ -43,12 +43,12 @@ export function App() {
         <>
           <Button variant="ghost" size="sm" onClick={load} title="Re-run the extractor over every call log">
             <RefreshCw size={13} />
-            Re-analyze
+            <span className="hidden sm:inline">Re-analyze</span>
           </Button>
           {section !== "import" && (
-            <Button variant="primary" onClick={() => navigate(["import"])}>
+            <Button variant="primary" onClick={() => navigate(["import"])} title="Import a call log" aria-label="Import a call log">
               <Upload size={13} />
-              Import log
+              <span className="hidden sm:inline">Import log</span>
             </Button>
           )}
         </>

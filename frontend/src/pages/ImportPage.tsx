@@ -60,7 +60,7 @@ export function ImportPage({ onImport }: { onImport: (name: string, log: Importe
   };
 
   return (
-    <div className="h-full overflow-y-auto px-6 py-5">
+    <div className="h-full overflow-y-auto px-3 py-4 md:px-6 md:py-5">
       <div className="max-w-3xl">
         <h1 className="text-[16px] font-semibold">Import call log</h1>
         <p className="mt-1 text-[13px] text-muted">

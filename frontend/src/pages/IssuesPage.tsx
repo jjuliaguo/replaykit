@@ -17,7 +17,7 @@ export function IssuesPage({ calls, error }: { calls: CallSummary[] | null; erro
   for (const r of rows) byType.set(r.f.type, (byType.get(r.f.type) ?? 0) + 1);
 
   return (
-    <div className="h-full overflow-y-auto px-6 py-5">
+    <div className="h-full overflow-y-auto px-3 py-4 md:px-6 md:py-5">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-[16px] font-semibold">Issues</h1>
