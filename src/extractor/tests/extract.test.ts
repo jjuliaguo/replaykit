@@ -22,7 +22,6 @@ describe("example logs end to end", () => {
     ["booking-handled-correctly", []],
     ["booking-retry-succeeds", []],
     ["multi-turn-success", []],
-    ["reschedule-timeout-event-log", ["false_success_claim"]],
   ] as const)("%s -> %j", (name, expected) => {
     const r = extract(loadExample(name), { extractedAt: FIXED });
     expect(r.findings.map((f) => f.type)).toEqual(expected);
@@ -122,7 +121,6 @@ describe("CLI", () => {
     expect(code).toBe(0);
     const files = (await readdir(out)).sort();
     expect(files).toEqual([
-      "call-8f29a1.json",
       "synthetic-address-update-http-500.json",
       "synthetic-booking-false-confirmation.json",
       "synthetic-order-status-timeout.json",

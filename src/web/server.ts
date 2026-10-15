@@ -21,7 +21,7 @@ import { parseArgs } from "node:util";
 import { runGoldenPath } from "../e2e/golden-path.js";
 import { clientIp, handleCors, RateLimiter, readDeployConfig, type DeployConfig } from "./deploy.js";
 import { classifyToolResult } from "../extractor/analysis/tool-outcome.js";
-import { extract } from "../extractor/extract.js";
+import { extract, extractAsync } from "../extractor/extract.js";
 import { EXTRACTOR_VERSION } from "../extractor/version.js";
 import { renderHtmlReport } from "../replay/report/html-report.js";
 import { runReplaySuite, type AgentSpec } from "../replay/pipeline.js";
@@ -213,7 +213,7 @@ async function handleExtract(body: unknown) {
   if (minConfidence !== undefined && minConfidence !== "medium" && minConfidence !== "high") throw new HttpError(400, "minConfidence must be medium or high");
   try {
     const started = performance.now();
-    const result = extract(raw, { fallbackId, ...(minConfidence ? { minConfidence } : {}) });
+    const result = await extractAsync(raw, { fallbackId, ...(minConfidence ? { minConfidence } : {}) });
     // The extractor's own success/failure/unknown verdict for every tool result,
     // keyed by event index, so the UI never re-implements that logic.
     const outcomes = Object.fromEntries(

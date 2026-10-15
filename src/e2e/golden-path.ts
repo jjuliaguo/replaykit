@@ -12,7 +12,8 @@
  */
 import type { JsonValue } from "../shared/json.js";
 import { parseFixture, type ReplayFixture } from "../shared/types.js";
-import { extract, type ExtractResult } from "../extractor/extract.js";
+import { extractAsync, type ExtractResult } from "../extractor/extract.js";
+import type { LlmClient } from "../extractor/adapters/llm-client.js";
 import { listenMockServer } from "../replay/mock-server.js";
 import { runReplaySuite } from "../replay/pipeline.js";
 import type { ReplayKitReport } from "../replay/types.js";
@@ -47,6 +48,8 @@ export interface GoldenPathOptions {
   log: unknown;
   fallbackId?: string;
   baseline?: "original" | "naive" | "skip" | "honor";
+  /** LLM for unfamiliar formats; undefined = from environment, null = off. */
+  llm?: LlmClient | null;
   candidate?: "honor";
 }
 
@@ -80,7 +83,7 @@ export async function runGoldenPath(options: GoldenPathOptions): Promise<GoldenP
   let extractError: string | null = null;
   const [, t1] = await timed(async () => {
     try {
-      extracted = extract(options.log, { fallbackId: options.fallbackId ?? "call-log" });
+      extracted = await extractAsync(options.log, { fallbackId: options.fallbackId ?? "call-log", llm: options.llm });
     } catch (e) {
       extractError = (e as Error).message;
     }

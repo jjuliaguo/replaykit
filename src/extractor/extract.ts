@@ -1,12 +1,14 @@
 /**
  * Extraction pipeline: raw log -> normalized CallLog -> findings -> fixture.
  *
- * Pure and synchronous apart from file I/O in the CLI. No network, no LLM:
- * extraction is free, takes milliseconds, and gives the same output for the
- * same input.
+ * extract() is pure and synchronous: no network, no LLM, free, milliseconds,
+ * and the same output for the same input. extractAsync() adds the optional
+ * LLM structure-mapping fallback for unfamiliar log formats (see
+ * adapters/llm-normalizer.ts); detection and fixture generation are unchanged.
  */
 import type { CallLog, ReplayFixture } from "../shared/types.js";
-import { toCallLog, type InputFormat } from "./adapters/index.js";
+import { toCallLog, toCallLogAsync, type InputFormat } from "./adapters/index.js";
+import type { LlmClient } from "./adapters/llm-client.js";
 import { detectFailures, type Finding } from "./detectors/index.js";
 import { generateFixture, type GenerateOptions } from "./generate.js";
 
@@ -27,6 +29,14 @@ export interface ExtractResult {
 
 export function extract(raw: unknown, options: ExtractOptions = {}): ExtractResult {
   const callLog = toCallLog(raw, options.format ?? "auto", options.fallbackId);
+  const all = detectFailures(callLog);
+  const findings = options.minConfidence === "high" ? all.filter((f) => f.confidence === "high") : all;
+  const fixture = findings.length > 0 ? generateFixture(callLog, findings, options) : null;
+  return { callLog, findings, fixture };
+}
+
+export async function extractAsync(raw: unknown, options: ExtractOptions & { llm?: LlmClient | null } = {}): Promise<ExtractResult> {
+  const callLog = await toCallLogAsync(raw, { format: options.format ?? "auto", fallbackId: options.fallbackId, llm: options.llm });
   const all = detectFailures(callLog);
   const findings = options.minConfidence === "high" ? all.filter((f) => f.confidence === "high") : all;
   const fixture = findings.length > 0 ? generateFixture(callLog, findings, options) : null;

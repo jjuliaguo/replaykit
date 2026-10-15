@@ -45,17 +45,74 @@ function toolsFrom(events: CallEvent[]): ToolDefinition[] {
 // Plain-text transcripts: "Agent: hello\nUser: hi". Common when copying from
 // a dashboard, or Bland's concatenated_transcript.
 
-const LINE = /^\s*\[?([A-Za-z][\w .'-]{0,30}?)\]?\s*[:：]\s*(.*)$/;
+/** Leading timestamps: "[00:08]", "14:02:11.5", "(2:03 PM)", "2026-10-15T14:00:01Z", "2026-10-15 14:00:01 -". */
+const TIME_PREFIX = /^\s*[\[(]?(?:\d{4}-\d{2}-\d{2}[T ]\d{1,2}:\d{2}(?::\d{2})?(?:[.,]\d+)?(?:Z|[+-]\d{2}:?\d{2})?|\d{1,2}:\d{2}(?::\d{2})?(?:[.,]\d+)?\s*(?:[AP]M)?)[\])]?\s*[-–|]?\s*/i;
+const LINE = /^\s*[\[<]?([A-Za-z][\w .'-]{0,30}?)[\]>]?\s*[:：>]\s*(.*)$/;
+/** Tool lines, with or without a colon: "TOOL_CALL book_appointment {...}", "Tool response (check_availability): {...}". */
+const TOOL_LINE =
+  /^\s*[\[<]?((?:tool|function|api|webhook|action)[ _-]?(?:call|request|invocation|invoke|response|result|output|returned|error|failure|timeout)?|tool)[\]>]?\b\s*((?:>>|<<|->|<-|→|←)?)\s*[:：>\-]?\s*(.*)$/i;
+
+function stripTime(line: string): string {
+  return line.replace(TIME_PREFIX, "");
+}
+
+function toolKindOf(label: string, rest: string, arrow = ""): "call" | "result" | "error" {
+  const s = `${label} ${rest.slice(0, 60)}`.toLowerCase();
+  const status = rest.match(/\b([45]\d\d)\b/);
+  if (/(<<|<-|←)/.test(arrow)) return status || /(error|fail|timeout|timed.?out|exception)/.test(s) ? "error" : "result";
+  if (/(>>|->|→)/.test(arrow)) return "call";
+  if (/(error|fail|timeout|timed.?out|exception)/.test(s)) return "error";
+  if (/(response|result|output|return|reply)/.test(s)) return "result";
+  return "call";
+}
 
 export function readTranscriptText(text: string, id: string, provider = "transcript-text"): CallLog {
   const events: CallEvent[] = [];
   const unknownSpeakers = new Map<string, Role>();
+  const open: Array<{ callId: string; toolName: string }> = [];
+  let n = 0;
   let current: { role: Role; parts: string[] } | null = null;
   const flush = () => {
     if (current && current.parts.join(" ").trim()) events.push({ type: "message", role: current.role, content: current.parts.join(" ").trim() });
     current = null;
   };
-  for (const raw of text.split(/\r?\n/)) {
+  for (const original of text.split(/\r?\n/)) {
+    const raw = stripTime(original);
+    const tool = raw.match(TOOL_LINE);
+    if (tool && (embeddedJson(tool[3] ?? "") || /^[A-Za-z_0-9][\w.-]*\b/.test(tool[3] ?? ""))) {
+      flush();
+      const rest = tool[3] ?? "";
+      const arrow = tool[2] ?? "";
+      const found = embeddedJson(rest);
+      const before = found ? found.before : rest;
+      const nameMatch = before.match(/([A-Za-z_][\w.-]{1,60})/);
+      const kind = toolKindOf(tool[1]!, rest, arrow);
+      const named = nameMatch && !/^(response|result|returned|error|call|request|with|the)$/i.test(nameMatch[1]!) ? nameMatch[1]! : undefined;
+      if (kind === "call") {
+        const callId = `line_${++n}`;
+        const toolName = named ?? "tool";
+        open.push({ callId, toolName });
+        events.push({ type: "tool_call", callId, toolName, arguments: (found?.json ?? {}) as JsonValue });
+      } else {
+        const idx = named ? open.map((o) => o.toolName).lastIndexOf(named) : open.length - 1;
+        const match = idx >= 0 ? open.splice(idx, 1)[0] : undefined;
+        const callId = match?.callId ?? `line_${++n}`;
+        const toolName = match?.toolName ?? named ?? "tool";
+        if (!match) events.push({ type: "tool_call", callId, toolName, arguments: {} });
+        const statusMatch = rest.match(/\b([1-5]\d\d)\b/);
+        const status = statusMatch ? Number(statusMatch[1]) : undefined;
+        if (found && status !== undefined) {
+          // An HTTP response line: keep the recorded status and body as they are.
+          events.push({ type: "tool_result", callId, toolName, response: { status, body: found.json } });
+        } else if (kind === "error" || !found) {
+          const message = found ? JSON.stringify(found.json) : rest.replace(named ?? "", "").replace(/^[\s:,-]+/, "") || "error";
+          events.push({ type: "tool_result", callId, toolName, error: { kind: /time.?out/i.test(rest + tool[1]) ? "timeout" : "unknown", message } });
+        } else {
+          events.push({ type: "tool_result", callId, toolName, response: { body: found.json } });
+        }
+      }
+      continue;
+    }
     const m = raw.match(LINE);
     if (m) {
       const speaker = m[1]!.trim();
@@ -73,15 +130,19 @@ export function readTranscriptText(text: string, id: string, provider = "transcr
   }
   flush();
   const named = [...unknownSpeakers.entries()].map(([s, r]) => `"${s}" as ${r}`);
+  const tools = events.filter((e) => e.type === "tool_call").length;
   return baseLog(id, provider, events, {
-    notes: `Read as a plain-text transcript: ${events.length} turns, no tool data.${named.length ? ` Speakers mapped: ${named.join(", ")}.` : ""}`,
+    tools: toolsFrom(events),
+    notes:
+      `Read as a plain-text transcript: ${events.filter((e) => e.type === "message").length} turns, ${tools ? `${tools} tool call(s) from tool lines` : "no tool data"}.` +
+      (named.length ? ` Speakers mapped: ${named.join(", ")}.` : ""),
   });
 }
 
 export const transcriptText: FormatReader = {
   id: "transcript-text",
   label: "Plain-text transcript",
-  detect: (d) => typeof d === "string" && d.split(/\r?\n/).filter((l) => LINE.test(l)).length >= 2,
+  detect: (d) => typeof d === "string" && d.split(/\r?\n/).map(stripTime).filter((l) => LINE.test(l) || TOOL_LINE.test(l)).length >= 2,
   read: (d, fallbackId) => readTranscriptText(d as string, fallbackId),
 };
 
