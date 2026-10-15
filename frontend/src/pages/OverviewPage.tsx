@@ -34,9 +34,15 @@ function StatusIcon({ status }: { status: GoldenStep["status"] }) {
   return <span className={cx(base, "border-line-strong bg-panel text-subtle")}><Minus size={13} /></span>;
 }
 
-const PASTE_PLACEHOLDER = `Paste a call log as JSON: a ReplayKit call log
-({"schemaVersion": "1.0", "events": [...]}) or an OpenAI
-chat transcript ({"messages": [...]}).`;
+const PASTE_PLACEHOLDER = `Paste a call log. Any of these work:
+
+  • Bland call details (the JSON from GET /v1/calls/{id})
+  • Retell or Vapi call objects
+  • OpenAI or Anthropic message lists, or any JSON list of {role, content}
+  • A plain transcript, one "Speaker: text" line per turn
+
+Failures are only detectable when the log includes tool calls
+and the API responses they got back.`;
 
 type Source = { kind: "example"; name: string } | { kind: "pasted"; label: string };
 
@@ -98,12 +104,12 @@ export function OverviewPage({ calls }: { calls: CallSummary[] | null }) {
 
   const runPasted = async () => {
     userRan.current = true;
-    let log: unknown;
+    // JSON is parsed by the server too; anything else is sent as a plain-text transcript.
+    let log: unknown = pasted;
     try {
       log = JSON.parse(pasted);
-    } catch (e) {
-      setError(`That isn't valid JSON: ${(e as Error).message}`);
-      return;
+    } catch {
+      /* not JSON: send the text as-is */
     }
     setRunning(true);
     setError(null);
@@ -128,6 +134,9 @@ export function OverviewPage({ calls }: { calls: CallSummary[] | null }) {
   const failures = names.filter((n) => !(byName.get(n) ? byName.get(n)!.findings.length === 0 : EXAMPLE_COPY[n]?.control));
   const controls = names.filter((n) => !failures.includes(n));
   const passed = result?.steps.filter((s) => s.status === "pass").length ?? 0;
+  // The log loaded but held no failure: an answer, not an error.
+  const nothingToTest = !!result && result.steps[0]?.status === "pass" && result.steps[1]?.status === "fail";
+  const unreadable = !!result && result.steps[0]?.status === "fail";
   const resultTitle = result ? (result.source.kind === "example" ? exampleCopy(result.source.name).title : `Pasted log · ${result.source.label}`) : "";
   // Deep links only make sense for bundled examples; pasted logs live only in this page.
   const linkTarget = result?.source.kind === "example" ? result.source.name : null;
@@ -212,9 +221,14 @@ export function OverviewPage({ calls }: { calls: CallSummary[] | null }) {
 
         {result && (
           <>
-            <div ref={resultRef} className={cx("mt-5 scroll-mt-4 rounded-md border px-4 py-3", result.ok ? "border-ok/40 bg-ok-bg" : "border-err/40 bg-err-bg")}>
+            <div
+              ref={resultRef}
+              className={cx("mt-5 scroll-mt-4 rounded-md border px-4 py-3", result.ok ? "border-ok/40 bg-ok-bg" : nothingToTest ? "border-line-strong bg-well" : "border-err/40 bg-err-bg")}
+            >
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className={cx("text-[15px] font-semibold", result.ok ? "text-ok" : "text-err")}>{result.ok ? "End-to-end pass" : "End-to-end fail"}</span>
+                <span className={cx("text-[15px] font-semibold", result.ok ? "text-ok" : nothingToTest ? "text-ink" : "text-err")}>
+                  {result.ok ? "End-to-end pass" : nothingToTest ? "Nothing to test" : unreadable ? "Couldn't read this log" : "End-to-end fail"}
+                </span>
                 <span className="font-mono text-[12px] text-muted">
                   {passed}/{result.steps.length} steps · {result.durationMs} ms
                 </span>

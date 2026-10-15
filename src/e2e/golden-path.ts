@@ -101,8 +101,14 @@ export async function runGoldenPath(options: GoldenPathOptions): Promise<GoldenP
     title: "Load call log",
     owner: "input",
     status: "pass",
-    detail: `${ex.callLog.id}: ${ex.callLog.events.length} events, ${toolResults} tool result(s), ${ex.callLog.kind} data from ${ex.callLog.provider}.`,
-    checks: [{ label: "events parsed", expected: "≥ 1", actual: String(ex.callLog.events.length), ok: ex.callLog.events.length > 0 }],
+    detail:
+      `${ex.callLog.id}: ${ex.callLog.events.length} events, ${toolResults} tool result(s), ${ex.callLog.kind} data from ${ex.callLog.provider}.` +
+      (ex.callLog.notes && ex.callLog.kind !== "synthetic" ? ` ${ex.callLog.notes}` : ""),
+    checks: [
+      { label: "format recognized", expected: "a supported format", actual: ex.callLog.provider, ok: true },
+      { label: "events parsed", expected: "≥ 1", actual: String(ex.callLog.events.length), ok: ex.callLog.events.length > 0 },
+      { label: "tool results in the log", expected: "≥ 1 to replay an API response", actual: String(toolResults), ok: true },
+    ],
     durationMs: t1,
   });
 
@@ -123,7 +129,9 @@ export async function runGoldenPath(options: GoldenPathOptions): Promise<GoldenP
     status: extractOk ? "pass" : "fail",
     detail: extractOk
       ? `${ex.findings.map((f) => `${f.type} (${f.confidence})`).join(", ")}. Fixture ${fixture!.id} with ${fixture!.expectations.length} expectations.`
-      : "No failure detected, so there is no regression test to run.",
+      : toolResults === 0
+        ? "Nothing to test: this log has no tool calls or API responses, so there is nothing to check the agent's statements against. A regression test needs at least one recorded tool result."
+        : "No failure detected: the agent's replies are consistent with the API responses in this log, so there is no regression test to run.",
     checks: [
       { label: "findings", expected: "≥ 1", actual: String(ex.findings.length), ok: ex.findings.length > 0 },
       { label: "fixture valid against shared schema", expected: "yes", actual: schemaOk ? "yes" : "no", ok: schemaOk },

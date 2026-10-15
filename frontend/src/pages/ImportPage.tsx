@@ -24,12 +24,11 @@ export function ImportPage({ onImport }: { onImport: (name: string, log: Importe
 
   const submit = async () => {
     setError(null);
-    let raw: unknown;
+    let raw: unknown = text;
     try {
       raw = JSON.parse(text);
-    } catch (e) {
-      setError(`Not valid JSON: ${(e as Error).message}`);
-      return;
+    } catch {
+      /* not JSON: analyze as a plain-text transcript */
     }
     setBusy(true);
     try {
@@ -64,9 +63,8 @@ export function ImportPage({ onImport }: { onImport: (name: string, log: Importe
       <div className="max-w-3xl">
         <h1 className="text-[16px] font-semibold">Import call log</h1>
         <p className="mt-1 text-[13px] text-muted">
-          Paste a call log to trace it and extract a regression test. Accepted formats: the ReplayKit call log (<span className="font-mono">schemas/call-log.schema.json</span>) and
-          OpenAI chat transcripts (<span className="font-mono">{"{ messages: [...] }"}</span>). There is no Bland adapter yet; convert Bland logs to the call-log format.
-          Imports stay in this browser tab and are analyzed by the local server only.
+          Paste a call log to trace it and extract a regression test. Accepted: Bland call details, Retell or Vapi call objects, OpenAI or Anthropic message lists, any JSON list of
+          {"{role, content}"} messages, a ReplayKit call log, or a plain transcript with one “Speaker: text” line per turn. Imports stay in this browser tab.
         </p>
         <div className="mt-4">
           <Label>Call log JSON</Label>

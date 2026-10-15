@@ -151,7 +151,7 @@ describe("errors", () => {
   it("rejects bad input with a clear message", async () => {
     expect((await post("/api/extract", "{oops")).status).toBe(400);
     expect((await post("/api/extract", {})).status).toBe(400);
-    expect((await post("/api/extract", { log: { foo: 1 } })).body.error).toMatch(/unrecognized log format/);
+    expect((await post("/api/extract", { log: { foo: 1 } })).body.error).toMatch(/Couldn.t find a conversation/);
     expect((await post("/api/replay", { fixture: { nope: true } })).status).toBe(422);
     const live = await post("/api/replay", { fixtureRef: "booking-unavailable.json", agents: ["live"] });
     expect(live.status).toBe(400);

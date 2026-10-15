@@ -11,13 +11,13 @@ import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { parseArgs } from "node:util";
 import { extract, type ExtractResult } from "./extract.js";
-import type { InputFormat } from "./adapters/index.js";
+import { INPUT_FORMATS, type InputFormat } from "./adapters/index.js";
 
 const USAGE = `Usage: npm run extract -- <log.json | directory>... [options]
 
 Options:
   --out <dir>              where to write fixtures (default: fixtures/generated)
-  --format <fmt>           auto | calllog | openai-chat (default: auto)
+  --format <fmt>           auto | calllog | openai-chat | bland | retell | vapi | messages | transcript-text (default: auto)
   --min-confidence <lvl>   medium | high (default: medium)
   --extracted-at <iso>     fixed timestamp, for reproducible output
   --dry-run                analyze and print, but write nothing
@@ -79,7 +79,7 @@ export async function main(argv: string[]): Promise<number> {
     console.log(USAGE);
     return values.help ? 0 : 1;
   }
-  if (!["auto", "calllog", "openai-chat"].includes(values.format)) {
+  if (values.format !== "auto" && !INPUT_FORMATS.includes(values.format)) {
     console.error(`unknown --format "${values.format}"`);
     return 1;
   }
@@ -100,7 +100,13 @@ export async function main(argv: string[]): Promise<number> {
   const jsonOut: unknown[] = [];
   for (const file of files) {
     try {
-      const raw = JSON.parse(await readFile(file, "utf8"));
+      const text = await readFile(file, "utf8");
+      let raw: unknown = text;
+      try {
+        raw = JSON.parse(text);
+      } catch {
+        /* plain-text transcript */
+      }
       const result = extract(raw, {
         format: values.format as InputFormat,
         minConfidence: values["min-confidence"] as "medium" | "high",
