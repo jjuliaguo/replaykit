@@ -1,4 +1,6 @@
-# ReplayKit: Project Context
+# ReplayKit: Replay Engine Brief
+
+> The primary project context, including the rules every implementation must follow, is in [CONTEXT.md](../CONTEXT.md) at the repository root. This file is the original brief for the replay-engine slice and stays here for the task-level details.
 
 ReplayKit is a developer tool that converts failed voice-agent calls into reproducible regression tests.
 
