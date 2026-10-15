@@ -13,6 +13,21 @@ npx vercel@64.2.0 deploy --prod --scope jjuliaguos-projects
 
 - Railway was the original plan for the API. The account's Railway trial has expired, so the API runs on Vercel instead. The Railway setup below still works once a Railway plan is active.
 
+
+### Reading any log format (optional LLM fallback)
+
+The built-in readers handle common formats for free. For anything they can't read, ReplayKit can ask an LLM to read the log. It does this only as a fallback: a paste the built-in readers handle never reaches the model. Every value the model returns is checked against the original log, and anything not found there is dropped.
+
+To turn it on, add these in Vercel under **Project replaykit > Settings > Environment Variables**, for Production:
+
+| Name | Value |
+| --- | --- |
+| `OPENAI_API_KEY` | your OpenAI key |
+| `REPLAYKIT_LLM_MAPPING` | `1` |
+| `OPENAI_MODEL` | optional. Defaults to `gpt-4.1-mini`, with one retry on `gpt-4o-mini` if that id is unavailable. |
+
+Then redeploy, because environment variables apply only to new deployments. Each fallback is one paid API call. To turn it off, remove `REPLAYKIT_LLM_MAPPING`.
+
 ---
 
 ## Alternative: API on Railway, frontend on Vercel

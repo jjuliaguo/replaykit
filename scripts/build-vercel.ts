@@ -49,7 +49,7 @@ cpSync("examples", path.join(fn, "examples"), { recursive: true });
 cpSync("fixtures", path.join(fn, "fixtures"), { recursive: true });
 writeFileSync(
   path.join(fn, ".vc-config.json"),
-  JSON.stringify({ runtime: "nodejs22.x", handler: "index.mjs", launcherType: "Nodejs", shouldAddHelpers: false, maxDuration: 15, memory: 1024 }, null, 2),
+  JSON.stringify({ runtime: "nodejs22.x", handler: "index.mjs", launcherType: "Nodejs", shouldAddHelpers: false, maxDuration: 60, memory: 1024 }, null, 2),
 );
 
 // 3. Routing and headers.
