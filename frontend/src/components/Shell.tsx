@@ -1,5 +1,6 @@
 import { ChevronsUpDown, FlaskConical, Inbox, LayoutGrid, PanelLeft, PhoneCall, Upload } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { IS_HOSTED } from "../api";
 import { href } from "../lib/router";
 import { cx } from "./ui";
 
@@ -100,8 +101,8 @@ export function Shell({
           </span>
           {!collapsed && (
             <div className="min-w-0 leading-tight">
-              <div className="text-[13px] font-medium">Offline mode</div>
-              <div className="text-[12px] text-muted">No network or model calls</div>
+              <div className="text-[13px] font-medium">{IS_HOSTED ? "Public demo" : "Offline mode"}</div>
+              <div className="text-[12px] text-muted">{IS_HOSTED ? "Synthetic data · no model calls" : "No network or model calls"}</div>
             </div>
           )}
         </div>

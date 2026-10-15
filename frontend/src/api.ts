@@ -84,13 +84,25 @@ export type E2EResponse = GoldenPathResult & { example: string | null; durationM
 
 export class ApiError extends Error {}
 
+/**
+ * Where the API lives. Empty = same origin (local `npm run web`). On Vercel,
+ * VITE_API_BASE is set at build time to the Railway URL.
+ */
+export const API_BASE: string = String(import.meta.env.VITE_API_BASE ?? "").replace(/\/+$/, "");
+export const IS_HOSTED = API_BASE !== "";
+
 async function request<T>(path: string, body?: unknown): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(path, body === undefined ? undefined : { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    res = await fetch(API_BASE + path, body === undefined ? undefined : { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   } catch {
-    throw new ApiError("Cannot reach the ReplayKit server. Start it with `npm run web` in replaykit-integrated.");
+    throw new ApiError(
+      IS_HOSTED
+        ? `Cannot reach the ReplayKit API at ${API_BASE}. It may be starting up or blocking this origin (CORS); try again in a moment.`
+        : "Cannot reach the ReplayKit server. Start it with `npm run web` in replaykit-integrated.",
+    );
   }
+  if (res.status === 429) throw new ApiError("Too many requests to the demo API. Wait a minute and try again.");
   const data = (await res.json().catch(() => ({ error: `HTTP ${res.status}` }))) as T & { error?: string };
   if (!res.ok) throw new ApiError(data.error ?? `HTTP ${res.status}`);
   return data;

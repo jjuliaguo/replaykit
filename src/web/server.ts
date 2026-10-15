@@ -19,6 +19,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { runGoldenPath } from "../e2e/golden-path.js";
+import { clientIp, handleCors, RateLimiter, readDeployConfig, type DeployConfig } from "./deploy.js";
 import { classifyToolResult } from "../extractor/analysis/tool-outcome.js";
 import { extract } from "../extractor/extract.js";
 import { EXTRACTOR_VERSION } from "../extractor/version.js";
@@ -244,13 +245,31 @@ async function handleReplay(body: unknown) {
   return { durationMs: Math.round((performance.now() - started) * 10) / 10, agents: ids, report, html: renderHtmlReport(report) };
 }
 
-export function createWebServer(options: { staticDir?: string } = {}): http.Server {
+export interface WebServerOptions extends Partial<Pick<DeployConfig, "apiOnly" | "corsOrigins" | "rateLimitPerMinute" | "trustProxy">> {
+  staticDir?: string;
+}
+
+export function createWebServer(options: WebServerOptions = {}): http.Server {
   const staticDir = path.resolve(options.staticDir ?? DEFAULT_STATIC_DIR);
+  const corsOrigins = options.corsOrigins ?? [];
+  const limiter = new RateLimiter(options.rateLimitPerMinute ?? 0);
   return http.createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", "http://localhost");
     const route = `${req.method} ${url.pathname}`;
     try {
+      if (corsOrigins.length && handleCors(req, res, corsOrigins)) return;
+      if (url.pathname.startsWith("/api/") && url.pathname !== "/api/health") {
+        const wait = limiter.take(clientIp(req, options.trustProxy ?? false));
+        if (wait > 0) {
+          res.setHeader("retry-after", String(wait));
+          throw new HttpError(429, `rate limit exceeded; retry in ${wait}s`);
+        }
+      }
       if (req.method === "GET" && !url.pathname.startsWith("/api/")) {
+        if (options.apiOnly) {
+          if (url.pathname === "/") return send(res, 200, { service: "replaykit-api", health: "/api/health", frontend: "served separately" });
+          throw new HttpError(404, "this deployment serves the API only");
+        }
         return serveStatic(res, staticDir, url.pathname);
       }
       switch (route) {
@@ -306,13 +325,28 @@ export function listen(server: http.Server, port: number, host = "127.0.0.1"): P
 
 const invokedDirectly = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (invokedDirectly) {
-  const { values } = parseArgs({ options: { port: { type: "string", default: process.env.PORT ?? "4321" } } });
-  const port = Number.parseInt(values.port, 10);
-  listen(createWebServer(), port).then(
-    (url) => console.log(`ReplayKit web app running at ${url}\nOffline mode: no network or model calls. Press Ctrl+C to stop.`),
+  const { values } = parseArgs({ options: { port: { type: "string" } } });
+  let config: DeployConfig;
+  try {
+    config = readDeployConfig(process.env, values.port);
+  } catch (error) {
+    console.error((error as Error).message);
+    process.exit(1);
+  }
+  const server = createWebServer(config);
+  listen(server, config.port, config.host).then(
+    (url) => {
+      console.log(`ReplayKit ${config.apiOnly ? "API" : "web app"} running at ${url}`);
+      console.log(
+        `apiOnly=${config.apiOnly} cors=${config.corsOrigins.join(",") || "off"} rateLimit=${config.rateLimitPerMinute || "off"}/min trustProxy=${config.trustProxy}`,
+      );
+      console.log("No model calls are made. Press Ctrl+C to stop.");
+    },
     (error: NodeJS.ErrnoException) => {
-      console.error(error.code === "EADDRINUSE" ? `Port ${port} is in use. Try: npm run web -- --port 4322` : error.message);
+      console.error(error.code === "EADDRINUSE" ? `Port ${config.port} is in use. Try: npm run web -- --port 4322` : error.message);
       process.exit(1);
     },
   );
+  // Railway sends SIGTERM on redeploy: stop accepting, let in-flight requests finish.
+  process.on("SIGTERM", () => server.close(() => process.exit(0)));
 }

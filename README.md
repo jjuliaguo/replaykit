@@ -69,6 +69,10 @@ frontend/                React UI: Overview, Calls, Issues, Regression tests, Im
 - **Stand-in agents.** The fixed agent is a deterministic stand-in. Running a production agent against a fixture needs a live runner, which is not built, and no paid model calls are made.
 - **One guaranteed test.** Other examples work in the UI. The refund case shows a known gap: the replay engine's stand-in agent does not call a required tool when other calls are recorded, documented in [INTEGRATION.md](INTEGRATION.md).
 
+## Deploying (branch `deploy-setup`)
+
+Public demo setup: frontend on Vercel, API on Railway. See [DEPLOY.md](DEPLOY.md).
+
 ## More detail
 
 - [docs/FIXTURE_FORMAT.md](docs/FIXTURE_FORMAT.md): the shared fixture contract.
