@@ -4,6 +4,20 @@ ReplayKit is a developer tool that converts failed voice-agent calls into reprod
 
 **Start here:** [CONTEXT.md](CONTEXT.md) is the project context: the problem, the first test case, the rules every implementation must follow, and the tech stack guidance. The original brief for the replay-engine slice is in [docs/PROJECT_CONTEXT.md](docs/PROJECT_CONTEXT.md).
 
+## Integrated build
+
+This branch (`integrated`) combines Claude's extractor and Cursor's replay engine, with a local web app. See [INTEGRATION.md](INTEGRATION.md).
+
+```bash
+npm install
+```
+
+```bash
+npm run web
+```
+
+Then open http://127.0.0.1:4321.
+
 ## Repository layout
 
 This repository holds two independent implementations of the same brief, built with two different AI coding tools, so they can be compared side by side.

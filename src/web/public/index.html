@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ReplayKit</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top-inner">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">&#x21bb;</span>
+        <div>
+          <h1>ReplayKit</h1>
+          <p class="tagline">Turn failed agent calls into regression tests, then check whether a fixed agent passes.</p>
+        </div>
+      </div>
+      <div class="mode" id="mode" title="Nothing leaves this machine">Offline &middot; no model calls</div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <ol class="steps" aria-label="Workflow">
+      <li><a href="#step-log">1 &middot; Call log</a></li>
+      <li><a href="#step-findings">2 &middot; Failures &amp; test</a></li>
+      <li><a href="#step-replay">3 &middot; Replay &amp; evaluate</a></li>
+    </ol>
+
+    <section class="card" id="step-log">
+      <div class="card-head">
+        <h2><span class="num">1</span> Call log</h2>
+        <span class="owner">Extractor &middot; Claude</span>
+      </div>
+      <p class="muted">Pick a synthetic example or paste your own log. The native ReplayKit call-log format and OpenAI chat transcripts are both accepted.</p>
+      <div class="row">
+        <label class="field grow">
+          <span>Example</span>
+          <select id="example-select"><option value="">Loading&hellip;</option></select>
+        </label>
+        <label class="field">
+          <span>Keep findings</span>
+          <select id="min-confidence">
+            <option value="medium">Medium and high confidence</option>
+            <option value="high">High confidence only</option>
+          </select>
+        </label>
+      </div>
+      <p class="note" id="example-notes"></p>
+      <label class="field">
+        <span>Call log JSON <small class="muted">(editable)</small></span>
+        <textarea id="log-input" spellcheck="false" rows="14"></textarea>
+      </label>
+      <div class="actions">
+        <button class="primary" id="extract-btn">Detect failures</button>
+        <span class="status" id="extract-status" role="status"></span>
+      </div>
+    </section>
+
+    <section class="card" id="step-findings">
+      <div class="card-head">
+        <h2><span class="num">2</span> Failures &amp; generated test</h2>
+        <span class="owner">Extractor &middot; Claude</span>
+      </div>
+      <div id="findings-empty" class="empty">Run step 1 to see what the extractor finds.</div>
+      <div id="findings" hidden>
+        <div id="findings-summary" class="summary"></div>
+        <div id="findings-list"></div>
+        <div id="fixture-panel" hidden>
+          <h3>Generated regression test</h3>
+          <p class="muted" id="fixture-meta"></p>
+          <div class="grid2">
+            <div>
+              <h4>Recorded tool responses <small class="muted">(replayed verbatim)</small></h4>
+              <div id="interactions"></div>
+            </div>
+            <div>
+              <h4>What a correct agent must do</h4>
+              <ul id="expectations" class="checklist"></ul>
+            </div>
+          </div>
+          <details>
+            <summary>Original conversation</summary>
+            <ol id="transcript" class="transcript"></ol>
+          </details>
+          <details>
+            <summary>Fixture JSON</summary>
+            <pre id="fixture-json" class="code"></pre>
+          </details>
+          <div class="actions">
+            <button class="primary" id="use-fixture-btn">Replay this test &darr;</button>
+            <button id="download-fixture-btn">Download fixture</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="step-replay">
+      <div class="card-head">
+        <h2><span class="num">3</span> Replay &amp; evaluate</h2>
+        <span class="owner">Replay engine &middot; Cursor</span>
+      </div>
+      <p class="muted">The replay engine returns the recorded tool responses to each agent, then scores what the agent actually said. The agents here are deterministic stand-ins: running your real agent needs a live runner, which this offline build does not include.</p>
+      <div class="row">
+        <label class="field grow">
+          <span>Test to replay</span>
+          <select id="fixture-select"></select>
+        </label>
+      </div>
+      <fieldset class="agents">
+        <legend>Agents to compare <small class="muted">(first is the baseline, last is the candidate)</small></legend>
+        <div id="agent-list"></div>
+      </fieldset>
+      <div class="actions">
+        <button class="primary" id="replay-btn">Run replay</button>
+        <span class="status" id="replay-status" role="status"></span>
+      </div>
+      <div id="replay-results" hidden>
+        <div id="run-cards" class="run-cards"></div>
+        <div id="comparison"></div>
+        <h3>Expectation results</h3>
+        <div class="table-wrap"><table id="matrix" class="matrix"></table></div>
+        <div class="report-head">
+          <h3>Full report</h3>
+          <button id="open-report-btn">Open in new tab</button>
+          <button id="download-report-btn">Download JSON</button>
+        </div>
+        <iframe id="report-frame" title="ReplayKit HTML report" sandbox></iframe>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap foot muted">
+    All examples are <strong>SYNTHETIC</strong>. Results are computed live by the extractor and replay engine; nothing on this page is precomputed.
+  </footer>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
