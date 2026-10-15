@@ -1,0 +1,816 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$ref": "#/$defs/ReplayFixture",
+  "$defs": {
+    "ReplayFixture": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "const": "1.0"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string"
+        },
+        "source": {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "minLength": 1
+            },
+            "kind": {
+              "type": "string",
+              "enum": [
+                "synthetic",
+                "recorded"
+              ]
+            },
+            "callLogId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "capturedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "extractedAt": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "extractor": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "version": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "version"
+              ]
+            }
+          },
+          "required": [
+            "provider",
+            "kind",
+            "callLogId",
+            "extractedAt",
+            "extractor"
+          ]
+        },
+        "scenario": {
+          "type": "object",
+          "properties": {
+            "messages": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "system",
+                      "user",
+                      "assistant"
+                    ]
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "role",
+                  "content"
+                ]
+              }
+            },
+            "userTurns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "messages",
+            "userTurns"
+          ]
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ToolDefinition"
+          }
+        },
+        "workflow": {
+          "$ref": "#/$defs/Workflow"
+        },
+        "replay": {
+          "type": "object",
+          "properties": {
+            "interactions": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ReplayInteraction"
+              }
+            },
+            "onUnmatchedCall": {
+              "default": "error_response",
+              "type": "string",
+              "enum": [
+                "error_response",
+                "fail_run"
+              ]
+            }
+          },
+          "required": [
+            "interactions"
+          ]
+        },
+        "original": {
+          "type": "object",
+          "properties": {
+            "events": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/CallEvent"
+              }
+            },
+            "finalAgentMessage": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "events"
+          ]
+        },
+        "failures": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DetectedFailure"
+          }
+        },
+        "expectations": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Expectation"
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "id",
+        "name",
+        "source",
+        "scenario",
+        "tools",
+        "replay",
+        "original",
+        "failures",
+        "expectations"
+      ]
+    },
+    "ToolDefinition": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string"
+        },
+        "parameters": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        },
+        "endpoint": {
+          "type": "object",
+          "properties": {
+            "method": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "JsonValue": {
+      "description": "Any JSON value.",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        },
+        {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        }
+      ]
+    },
+    "Workflow": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "requiredTools": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "ReplayInteraction": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "toolName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recordedArguments": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "request": {
+          "$ref": "#/$defs/HttpRequest"
+        },
+        "response": {
+          "$ref": "#/$defs/HttpResponse"
+        },
+        "error": {
+          "$ref": "#/$defs/ToolError"
+        },
+        "match": {
+          "$ref": "#/$defs/MatchRule"
+        },
+        "sourceEventIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "id",
+        "toolName",
+        "recordedArguments",
+        "match",
+        "sourceEventIndex"
+      ]
+    },
+    "HttpRequest": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "headers": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "body": {
+          "$ref": "#/$defs/JsonValue"
+        }
+      }
+    },
+    "HttpResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 599
+        },
+        "headers": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "body": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "latencyMs": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "ToolError": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "timeout",
+            "network",
+            "http",
+            "invalid_response",
+            "unknown"
+          ]
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "message"
+      ]
+    },
+    "MatchRule": {
+      "type": "object",
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": [
+            "sequence",
+            "arguments"
+          ]
+        },
+        "argumentKeys": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "strategy"
+      ]
+    },
+    "CallEvent": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "message"
+            },
+            "role": {
+              "type": "string",
+              "enum": [
+                "system",
+                "user",
+                "assistant"
+              ]
+            },
+            "content": {
+              "type": "string"
+            },
+            "at": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            }
+          },
+          "required": [
+            "type",
+            "role",
+            "content"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "tool_call"
+            },
+            "callId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "toolName": {
+              "type": "string",
+              "minLength": 1
+            },
+            "arguments": {
+              "default": {},
+              "$ref": "#/$defs/JsonValue"
+            },
+            "at": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            }
+          },
+          "required": [
+            "type",
+            "callId",
+            "toolName"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "tool_result"
+            },
+            "callId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "toolName": {
+              "type": "string",
+              "minLength": 1
+            },
+            "request": {
+              "$ref": "#/$defs/HttpRequest"
+            },
+            "response": {
+              "$ref": "#/$defs/HttpResponse"
+            },
+            "error": {
+              "$ref": "#/$defs/ToolError"
+            },
+            "at": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            }
+          },
+          "required": [
+            "type",
+            "callId"
+          ]
+        }
+      ]
+    },
+    "DetectedFailure": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/FailureType"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "toolName": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "string",
+          "enum": [
+            "high",
+            "medium"
+          ]
+        },
+        "detector": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "summary",
+        "confidence",
+        "detector",
+        "evidence"
+      ]
+    },
+    "FailureType": {
+      "type": "string",
+      "enum": [
+        "false_success_claim",
+        "unverified_success_claim",
+        "unhandled_tool_error",
+        "tool_result_misread"
+      ]
+    },
+    "Evidence": {
+      "type": "object",
+      "properties": {
+        "eventIndex": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quote": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "eventIndex",
+        "description"
+      ]
+    },
+    "Expectation": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1
+            },
+            "rationale": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Evidence"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "tool_called"
+            },
+            "toolName": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minCalls": {
+              "default": 1,
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "id",
+            "description",
+            "rationale",
+            "kind",
+            "toolName"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1
+            },
+            "rationale": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Evidence"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "no_success_claim"
+            },
+            "toolName": {
+              "type": "string",
+              "minLength": 1
+            },
+            "claimPhrases": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "id",
+            "description",
+            "rationale",
+            "kind",
+            "toolName"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1
+            },
+            "rationale": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Evidence"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "acknowledges_failure"
+            },
+            "toolName": {
+              "type": "string",
+              "minLength": 1
+            },
+            "signals": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "id",
+            "description",
+            "rationale",
+            "kind",
+            "toolName"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1
+            },
+            "rationale": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Evidence"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "consistent_with_tool_result"
+            },
+            "toolName": {
+              "type": "string",
+              "minLength": 1
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "expectedValue": {
+              "$ref": "#/$defs/JsonValue"
+            }
+          },
+          "required": [
+            "id",
+            "description",
+            "rationale",
+            "kind",
+            "toolName",
+            "path",
+            "expectedValue"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1
+            },
+            "rationale": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence": {
+              "default": [],
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/Evidence"
+              }
+            },
+            "kind": {
+              "type": "string",
+              "const": "rubric"
+            },
+            "rubric": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "id",
+            "description",
+            "rationale",
+            "kind",
+            "rubric"
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -8,8 +8,10 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "node --import tsx --test \"src/**/*.test.ts\"",
-    "typecheck": "tsc --noEmit"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "schema": "tsx scripts/generate-schemas.ts"
   },
   "dependencies": {
     "openai": "^7.34.0",
@@ -18,6 +20,10 @@
   "devDependencies": {
     "@types/node": "^26.6.5",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.4"
+  },
+  "exports": {
+    "./shared": "./src/shared/types.ts"
   }
 }

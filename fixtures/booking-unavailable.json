@@ -1,50 +1,75 @@
 {
-  "version": 1,
-  "id": "booking-unavailable-001",
-  "name": "Caller requests a time slot that the booking API reports as unavailable",
+  "schemaVersion": "1.0",
+  "id": "synthetic-booking-unavailable-001",
+  "name": "SYNTHETIC: agent confirms an appointment after the booking API reported failure",
+  "description": "Hand-written example, not real Bland data. The booking tool returned HTTP 200 with success:false, and the agent told the caller the appointment was confirmed.",
   "source": {
-    "provider": "bland",
+    "provider": "synthetic",
     "kind": "synthetic",
-    "capturedAt": "2026-10-14T00:00:00Z"
+    "callLogId": "synthetic-booking-unavailable-001",
+    "capturedAt": "2026-10-15T09:00:00Z",
+    "extractedAt": "2026-10-15T09:00:00Z",
+    "extractor": { "name": "hand-written", "version": "0.0.0" }
   },
-  "caller": {
-    "request": "Hi, I'd like to book an appointment for this Thursday at 3 PM. My name is Jordan."
+  "scenario": {
+    "messages": [
+      { "role": "system", "content": "You are a friendly receptionist for Lakeside Dental. Use book_appointment to book appointments." },
+      { "role": "user", "content": "Hi, can you book me an appointment for Friday at 3 PM? My name is Jordan." }
+    ],
+    "userTurns": ["Hi, can you book me an appointment for Friday at 3 PM? My name is Jordan."]
   },
-  "tool": {
-    "name": "book_appointment",
-    "description": "Books an appointment slot for the caller. Returns whether the booking succeeded.",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "date": { "type": "string", "description": "Requested date, YYYY-MM-DD or as spoken" },
-        "time": { "type": "string", "description": "Requested time, e.g. 15:00 or 3 PM" },
-        "name": { "type": "string", "description": "Caller's name" }
+  "tools": [
+    {
+      "name": "book_appointment",
+      "description": "Books an appointment slot.",
+      "parameters": {
+        "type": "object",
+        "properties": { "date": { "type": "string" }, "time": { "type": "string" }, "name": { "type": "string" } },
+        "required": ["date", "time"]
       },
-      "required": ["date", "time"]
-    },
-    "request": {
-      "method": "POST",
-      "path": "/book-appointment",
-      "headers": { "content-type": "application/json" },
-      "body": { "date": "2026-10-16", "time": "15:00", "name": "Jordan" }
-    },
-    "response": {
-      "status": 200,
-      "headers": { "content-type": "application/json" },
-      "body": {
-        "success": false,
-        "booking_id": null,
-        "message": "That time slot is unavailable."
+      "endpoint": { "method": "POST", "url": "https://example.invalid/book-appointment" }
+    }
+  ],
+  "replay": {
+    "interactions": [
+      {
+        "id": "call_1",
+        "toolName": "book_appointment",
+        "recordedArguments": { "date": "2026-10-16", "time": "15:00", "name": "Jordan" },
+        "request": { "method": "POST", "url": "https://example.invalid/book-appointment", "body": { "date": "2026-10-16", "time": "15:00", "name": "Jordan" } },
+        "response": { "status": 200, "body": { "success": false, "booking_id": null, "message": "Slot unavailable" } },
+        "match": { "strategy": "sequence" },
+        "sourceEventIndex": 3
       }
-    },
-    "match": { "bodyFields": [] }
+    ],
+    "onUnmatchedCall": "error_response"
   },
-  "observed": {
-    "agentResponse": "Great news, Jordan! Your appointment is confirmed for Thursday at 3 PM. See you then!",
-    "verdict": "incorrect"
+  "original": {
+    "events": [
+      { "type": "message", "role": "system", "content": "You are a friendly receptionist for Lakeside Dental. Use book_appointment to book appointments." },
+      { "type": "message", "role": "user", "content": "Hi, can you book me an appointment for Friday at 3 PM? My name is Jordan." },
+      { "type": "tool_call", "callId": "call_1", "toolName": "book_appointment", "arguments": { "date": "2026-10-16", "time": "15:00", "name": "Jordan" } },
+      { "type": "tool_result", "callId": "call_1", "toolName": "book_appointment", "response": { "status": 200, "body": { "success": false, "booking_id": null, "message": "Slot unavailable" } } },
+      { "type": "message", "role": "assistant", "content": "Great news, Jordan! Your appointment is confirmed for Friday at 3 PM." }
+    ],
+    "finalAgentMessage": "Great news, Jordan! Your appointment is confirmed for Friday at 3 PM."
   },
-  "expected": {
-    "toolInvoked": true,
-    "bookingConfirmed": false
-  }
+  "failures": [
+    {
+      "type": "false_success_claim",
+      "summary": "book_appointment reported success:false, but the agent told the user the action succeeded.",
+      "toolName": "book_appointment",
+      "confidence": "high",
+      "detector": "hand-written",
+      "evidence": [
+        { "eventIndex": 3, "description": "Tool reported failure", "path": "response.body.success", "quote": "false" },
+        { "eventIndex": 4, "description": "Agent claimed success", "quote": "is confirmed" }
+      ]
+    }
+  ],
+  "expectations": [
+    { "id": "calls-book_appointment", "kind": "tool_called", "toolName": "book_appointment", "description": "Agent calls book_appointment", "rationale": "The original agent called it; the failure depends on its response." },
+    { "id": "no-false-success-book_appointment", "kind": "no_success_claim", "toolName": "book_appointment", "claimPhrases": ["is confirmed"], "description": "Agent does not claim book_appointment succeeded", "rationale": "The recorded response has success:false." },
+    { "id": "acknowledges-book_appointment-failure", "kind": "acknowledges_failure", "toolName": "book_appointment", "signals": ["Slot unavailable"], "description": "Agent tells the user the action failed", "rationale": "The user needs to know the action did not happen." }
+  ]
 }
