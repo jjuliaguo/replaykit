@@ -8,9 +8,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "replay:serve": "tsx src/replay/serve.ts",
-    "replay:run": "tsx src/replay/run.ts",
-    "test": "node --import tsx --test \"src/replay/tests/*.test.ts\"",
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
