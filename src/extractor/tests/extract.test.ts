@@ -1,3 +1,4 @@
+import { readdirSync } from "node:fs";
 import { mkdtemp, readdir, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -21,6 +22,7 @@ describe("example logs end to end", () => {
     ["booking-handled-correctly", []],
     ["booking-retry-succeeds", []],
     ["multi-turn-success", []],
+    ["reschedule-timeout-event-log", ["false_success_claim"]],
   ] as const)("%s -> %j", (name, expected) => {
     const r = extract(loadExample(name), { extractedAt: FIXED });
     expect(r.findings.map((f) => f.type)).toEqual(expected);
@@ -101,7 +103,13 @@ describe("committed fixtures in fixtures/generated", () => {
     expect(files.length).toBeGreaterThan(0);
     for (const file of files) {
       const committed = JSON.parse(await readFile(path.join("fixtures/generated", file), "utf8"));
-      const fresh = extract(loadExample(committed.source.callLogId.replace(/^synthetic-/, "")), { extractedAt: committed.source.extractedAt });
+      // Find the example this fixture came from by content, not by file naming.
+      const source = readdirSync("examples/call-logs")
+        .filter((f) => f.endsWith(".json"))
+        .map((f) => loadExample(f.replace(/\.json$/, "")))
+        .find((raw) => extract(raw, { extractedAt: committed.source.extractedAt }).fixture?.id === committed.id);
+      expect(source, `no example produces ${file}`).toBeDefined();
+      const fresh = extract(source, { extractedAt: committed.source.extractedAt });
       expect(fresh.fixture, file).toEqual(committed);
     }
   });
@@ -114,6 +122,7 @@ describe("CLI", () => {
     expect(code).toBe(0);
     const files = (await readdir(out)).sort();
     expect(files).toEqual([
+      "call-8f29a1.json",
       "synthetic-address-update-http-500.json",
       "synthetic-booking-false-confirmation.json",
       "synthetic-order-status-timeout.json",

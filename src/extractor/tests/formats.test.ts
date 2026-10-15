@@ -148,3 +148,50 @@ describe("unreadable input", () => {
     expect(toCallLog(JSON.stringify(blandCall)).provider).toBe("bland");
   });
 });
+
+describe("generic event logs (pasted by a user)", () => {
+  // The exact log a user pasted into the live demo: tool payloads inline on each event.
+  const pasted = {
+    call_id: "call_8f29a1",
+    agent_id: "appointment_assistant_v2.4",
+    status: "completed_with_error",
+    events: [
+      { timestamp: "00:08", type: "user_message", content: "Can you move my appointment from Thursday to Friday at 2 PM?" },
+      { timestamp: "00:19", type: "tool_response", tool: "check_availability", http_status: 200, available: true },
+      { timestamp: "00:34", type: "tool_request", tool: "reschedule_appointment", appointment_id: "apt_7192", new_time: "2026-10-16T14:00:00-04:00" },
+      { timestamp: "00:44", type: "tool_error", tool: "reschedule_appointment", error: "TIMEOUT_ERROR", elapsed_ms: 10000, operation_status: "unknown" },
+      { timestamp: "00:48", type: "agent_message", content: "Perfect! I've moved your appointment to Friday at 2 PM. You're all set." },
+      { timestamp: "01:42", type: "verification", appointment_rescheduled: false },
+    ],
+    failure: { type: "false_confirmation", severity: "high" },
+  };
+
+  it("reads inline payloads, pairs the error with its request, and keeps other events as notes", () => {
+    expect(detectFormat(pasted)).toBe("event-log");
+    const log = toCallLog(pasted);
+    const calls = log.events.filter((e) => e.type === "tool_call");
+    expect(calls.map((c) => c.type === "tool_call" && [c.toolName, c.arguments])).toEqual([
+      ["check_availability", {}],
+      ["reschedule_appointment", { appointment_id: "apt_7192", new_time: "2026-10-16T14:00:00-04:00" }],
+    ]);
+    const results = log.events.filter((e) => e.type === "tool_result");
+    expect(results[0]).toMatchObject({ response: { status: 200, body: { available: true } } });
+    expect(results[1]).toMatchObject({ toolName: "reschedule_appointment", error: { kind: "timeout" } });
+    expect(results[1]?.type === "tool_result" && results[1].error?.message).toMatch(/TIMEOUT_ERROR.*operation_status: unknown/);
+    expect(log.events.at(-1)).toMatchObject({ role: "system", content: "[verification] appointment_rescheduled: false" });
+    expect(log.notes).toMatch(/check_availability had a response but no request event/);
+    expect(log.notes).toMatch(/"failure" label was ignored/);
+  });
+
+  it("finds the false confirmation from evidence, with high confidence", () => {
+    const r = extract(pasted);
+    expect(r.findings).toHaveLength(1);
+    expect(r.findings[0]).toMatchObject({ type: "false_success_claim", toolName: "reschedule_appointment", confidence: "high" });
+  });
+
+  it("does not flag the same log when the agent is honest", () => {
+    const honest = structuredClone(pasted);
+    honest.events[4] = { timestamp: "00:48", type: "agent_message", content: "I'm sorry, the system timed out and I couldn't confirm the change. Let me try again." };
+    expect(extract(honest).findings).toEqual([]);
+  });
+});

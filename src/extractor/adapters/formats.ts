@@ -345,5 +345,224 @@ export const genericMessages: FormatReader = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// Generic event logs: {events: [...]} (or timeline/log/steps...) mixing
+// messages, tool calls, and tool results, each identified by a `type`-like
+// field or by which keys it carries. Common in custom agent logging and in
+// hand-written incident logs.
+
+const EVENT_LIST_KEYS = ["events", "timeline", "log", "logs", "steps", "trace", "history", "turns", "transcript", "messages", "items", "entries", "records"];
+const TYPE_KEYS = ["type", "event", "event_type", "eventType", "kind", "action", "category"];
+const TOOL_NAME_KEYS = ["tool", "tool_name", "toolName", "name", "function", "function_name", "functionName", "api", "endpoint", "webhook", "operation", "method_name"];
+const ARG_KEYS = ["arguments", "args", "input", "params", "parameters", "payload", "request", "request_body", "body"];
+const RESULT_KEYS = ["output", "result", "response", "response_body", "body", "data", "return", "returned", "returns", "api_response", "value"];
+const CALL_ID_KEYS = ["tool_call_id", "toolCallId", "call_id", "callId", "invocation_id", "request_id", "id"];
+const STATUS_KEYS = ["status_code", "statusCode", "http_status", "httpStatus", "status"];
+
+type EventKind = "message" | "call" | "result" | "call+result" | null;
+
+const META_KEYS = new Set([
+  ...TYPE_KEYS, ...TOOL_NAME_KEYS, ...STATUS_KEYS, ...CALL_ID_KEYS,
+  "timestamp", "time", "created_at", "createdAt", "at", "ts", "t", "offset", "elapsed", "seq", "sequence", "index",
+  "role", "speaker", "from", "source", "error", "elapsed_ms", "duration_ms", "latency_ms", "latencyMs",
+]);
+
+/** Fields left after removing descriptive ones: the event's own payload when it has no args/output field. */
+function restFields(e: Record<string, unknown>): Record<string, JsonValue> | undefined {
+  const out: Record<string, JsonValue> = {};
+  for (const [k, v] of Object.entries(e)) if (!META_KEYS.has(k) && v !== undefined) out[k] = v as JsonValue;
+  return Object.keys(out).length ? out : undefined;
+}
+
+function latencyOf(e: Record<string, unknown>): number | undefined {
+  for (const k of ["latency_ms", "latencyMs", "elapsed_ms", "duration_ms"]) if (typeof e[k] === "number" && (e[k] as number) >= 0) return e[k] as number;
+  return undefined;
+}
+
+/** Error text including the event's other diagnostic fields, e.g. "TIMEOUT_ERROR (elapsed_ms: 10000, operation_status: unknown)". */
+function errorMessage(err: unknown, e: Record<string, unknown>): string {
+  const base = typeof err === "string" ? err : err ? JSON.stringify(err) : "error";
+  const extra = Object.entries(e)
+    .filter(([k, v]) => !TYPE_KEYS.includes(k) && !TOOL_NAME_KEYS.includes(k) && !["error", "timestamp", "time", "at", "ts"].includes(k) && (typeof v === "string" || typeof v === "number" || typeof v === "boolean"))
+    .map(([k, v]) => `${k}: ${v}`);
+  return extra.length ? `${base} (${extra.join(", ")})` : base;
+}
+
+function typeOf(e: Record<string, unknown>): string {
+  return (TYPE_KEYS.map((k) => e[k]).find((v) => typeof v === "string") as string | undefined)?.toLowerCase() ?? "";
+}
+
+function toolNameOf(e: Record<string, unknown>): string | undefined {
+  for (const k of TOOL_NAME_KEYS) {
+    const v = e[k];
+    if (typeof v === "string" && v.trim() && !/\s/.test(v.trim())) return v.trim();
+    if (isObject(v) && typeof v.name === "string") return v.name;
+  }
+  return undefined;
+}
+
+function firstPresent(e: Record<string, unknown>, keys: string[]): { key: string; value: unknown } | undefined {
+  for (const k of keys) if (e[k] !== undefined && e[k] !== null && e[k] !== "") return { key: k, value: e[k] };
+  return undefined;
+}
+
+function classifyEvent(e: Record<string, unknown>): { kind: EventKind; role?: Role } {
+  const t = typeOf(e);
+  const hasText = TEXT_KEYS.some((k) => typeof e[k] === "string" && (e[k] as string).trim());
+  const speaker = SPEAKER_KEYS.map((k) => e[k]).find((v) => typeof v === "string") as string | undefined;
+  const toolish = /(tool|function|api|webhook|http|action|integration|plugin|request|call(?!er))/;
+  if (t) {
+    if (toolish.test(t) && /(result|response|output|return|reply|complete|done|finish|error|fail)/.test(t)) return { kind: "result" };
+    if (toolish.test(t) || /^(call|invoke|invocation)$/.test(t)) {
+      return { kind: firstPresent(e, RESULT_KEYS.filter((k) => k !== "body")) || firstPresent(e, ["error"]) ? "call+result" : "call" };
+    }
+    if (/(error|fail|timeout|timed_out)/.test(t) && toolNameOf(e)) return { kind: "result" };
+    if (/(user|caller|customer|human|client|patient)/.test(t)) return { kind: "message", role: "user" };
+    if (/(agent|assistant|bot|ai|llm|model|robot)/.test(t)) return { kind: "message", role: "assistant" };
+    if (/(system|note|instruction)/.test(t)) return { kind: "message", role: "system" };
+    if (/(message|utterance|speech|transcript|turn|said|say)/.test(t) && hasText) return { kind: "message", role: roleOf(speaker) ?? "assistant" };
+  }
+  if (speaker && hasText) return { kind: "message", role: roleOf(speaker) ?? "assistant" };
+  if (speaker === "tool" || speaker === "function") return { kind: "result" };
+  if (toolNameOf(e) && firstPresent(e, ARG_KEYS)) return { kind: firstPresent(e, RESULT_KEYS.filter((k) => k !== "body")) ? "call+result" : "call" };
+  return { kind: null };
+}
+
+function findEventList(d: unknown): { list: Array<Record<string, unknown>>; key: string; container: Record<string, unknown> } | null {
+  const candidates: Array<Record<string, unknown>> = isObject(d) ? [d, ...Object.values(d).filter(isObject)] : [];
+  for (const c of candidates) {
+    for (const k of EVENT_LIST_KEYS) {
+      const v = c[k];
+      if (Array.isArray(v) && v.length && v.every(isObject)) return { list: v as Array<Record<string, unknown>>, key: k, container: c };
+    }
+  }
+  if (Array.isArray(d) && d.length && d.every(isObject)) return { list: d as Array<Record<string, unknown>>, key: "(root array)", container: {} };
+  return null;
+}
+
+/** Normalize a recorded tool response into {status?, body}. */
+function responseOf(raw: unknown, e: Record<string, unknown>): { status?: number; body: JsonValue } {
+  let body: unknown = raw;
+  let status: number | undefined;
+  if (isObject(raw) && ("body" in raw || "status" in raw || "status_code" in raw) && Object.keys(raw).every((k) => ["body", "status", "status_code", "statusCode", "headers", "latency_ms", "latencyMs"].includes(k))) {
+    body = raw.body ?? null;
+    const s = raw.status ?? raw.status_code ?? raw.statusCode;
+    if (typeof s === "number") status = s;
+  }
+  for (const k of STATUS_KEYS) {
+    const v = e[k];
+    if (status === undefined && typeof v === "number" && v >= 100 && v <= 599) status = v;
+  }
+  return { ...(status !== undefined ? { status } : {}), body: parseMaybeJson(body) };
+}
+
+export const eventLog: FormatReader = {
+  id: "event-log",
+  label: "Event log",
+  detect: (d) => {
+    const f = findEventList(d);
+    if (!f) return false;
+    const kinds = f.list.slice(0, 50).map((e) => classifyEvent(e).kind);
+    const known = kinds.filter(Boolean).length;
+    return kinds.includes("message") && known / kinds.length >= 0.5;
+  },
+  read: (d, fallbackId) => {
+    const { list, key, container } = findEventList(d)!;
+    const events: CallEvent[] = [];
+    const open: Array<{ callId: string; toolName: string }> = [];
+    let n = 0;
+    let skipped = 0;
+    const skippedTypes = new Set<string>();
+    const noted = new Set<string>();
+    const synthesizedCalls: string[] = [];
+    for (const e of list) {
+      const { kind, role } = classifyEvent(e);
+      const at = isoTime(e.timestamp ?? e.time ?? e.created_at ?? e.createdAt ?? e.at ?? e.ts);
+      const stamp = at ? { at } : {};
+      if (kind === "message") {
+        const text = textOf(firstPresent(e, TEXT_KEYS)?.value);
+        if (text?.trim()) events.push({ type: "message", role: role ?? "assistant", content: text, ...stamp });
+        else skipped++;
+        continue;
+      }
+      if (kind === "call" || kind === "call+result") {
+        const toolName = toolNameOf(e) ?? "tool";
+        const callId = pick(e, CALL_ID_KEYS) ?? `call_${++n}`;
+        const args = firstPresent(e, ARG_KEYS);
+        const argsValue = args?.value ?? (kind === "call" ? restFields(e) : undefined) ?? {};
+        events.push({ type: "tool_call", callId, toolName, arguments: parseMaybeJson(argsValue), ...stamp });
+        if (kind === "call+result") {
+          const res = firstPresent(e, RESULT_KEYS.filter((k) => k !== "body"));
+          const err = e.error;
+          events.push({
+            type: "tool_result",
+            callId,
+            toolName,
+            ...(res ? { response: responseOf(res.value, e) } : {}),
+            ...(!res && err ? { error: { kind: /time.?out/i.test(String(err)) ? ("timeout" as const) : ("unknown" as const), message: errorMessage(err, e) } } : {}),
+            ...stamp,
+          });
+        } else open.push({ callId, toolName });
+        continue;
+      }
+      if (kind === "result") {
+        const name = toolNameOf(e);
+        const explicit = pick(e, CALL_ID_KEYS.filter((k) => k !== "id"));
+        // Pair with the matching open call: by id, else the latest call to the same tool, else the latest call.
+        const idx = explicit ? open.findIndex((o) => o.callId === explicit) : name ? open.map((o) => o.toolName).lastIndexOf(name) : open.length - 1;
+        const match = idx >= 0 ? open.splice(idx, 1)[0] : undefined;
+        const callId = match?.callId ?? explicit ?? `result_${++n}`;
+        const toolName = match?.toolName ?? name;
+        const res = firstPresent(e, RESULT_KEYS);
+        const err = e.error;
+        const timedOut = /time.?out/i.test(typeOf(e)) || /time.?out/i.test(String(err ?? ""));
+        const isError = !!err || timedOut || /(error|fail)/.test(typeOf(e));
+        const inline = !res && !isError ? restFields(e) : undefined;
+        if (!match) {
+          // The log records a response with no request event. The response proves the call happened;
+          // add the call (with no arguments) so the pair is replayable, and say so in the notes.
+          events.push({ type: "tool_call", callId, toolName: toolName ?? "tool", arguments: {}, ...stamp });
+          synthesizedCalls.push(toolName ?? "tool");
+        }
+        events.push({
+          type: "tool_result",
+          callId,
+          ...(toolName ? { toolName } : {}),
+          ...(res && !isError ? { response: { ...responseOf(res.value, e), ...(latencyOf(e) !== undefined ? { latencyMs: latencyOf(e) } : {}) } } : {}),
+          ...(inline ? { response: { ...responseOf(inline, e), ...(latencyOf(e) !== undefined ? { latencyMs: latencyOf(e) } : {}) } } : {}),
+          ...(isError ? { error: { kind: timedOut ? ("timeout" as const) : ("unknown" as const), message: errorMessage(err ?? typeOf(e), e) } } : {}),
+          ...stamp,
+        });
+        continue;
+      }
+      const t = typeOf(e);
+      const data = restFields(e);
+      if (t && data) {
+        // Not a message or a tool call (e.g. a post-call verification): keep it visible, never as a tool call.
+        events.push({ type: "message", role: "system", content: `[${t}] ${Object.entries(data).map(([k, v]) => `${k}: ${JSON.stringify(v)}`).join(", ")}`, ...stamp });
+        noted.add(t);
+        continue;
+      }
+      skipped++;
+      if (t) skippedTypes.add(t);
+    }
+    // A tool_result needs a response or an error; drop empty ones rather than invent content.
+    const cleaned = events.filter((ev) => ev.type !== "tool_result" || ev.response || ev.error);
+    const orphanCalls = new Set(cleaned.filter((ev) => ev.type === "tool_result").map((ev) => (ev as { callId: string }).callId));
+    const usedLabel = isObject(container.failure) || typeof container.failure === "string";
+    return baseLog(idOf(container, fallbackId), "event-log", cleaned, {
+      tools: toolsFrom(cleaned),
+      startedAt: isoTime(container.started_at ?? container.start_time ?? container.created_at ?? container.timestamp),
+      notes:
+        `Read as an event log from the "${key}" list: ${cleaned.filter((e) => e.type === "message").length} messages, ` +
+        `${cleaned.filter((e) => e.type === "tool_call").length} tool calls, ${orphanCalls.size} tool results.` +
+        (synthesizedCalls.length ? ` ${synthesizedCalls.join(", ")} had a response but no request event, so a call with unknown arguments was added for it.` : "") +
+        (noted.size ? ` Other events kept as notes: ${[...noted].join(", ")}.` : "") +
+        (skipped ? ` ${skipped} event(s) not recognized and skipped${skippedTypes.size ? ` (types: ${[...skippedTypes].slice(0, 6).join(", ")})` : ""}.` : "") +
+        (usedLabel ? " The log's own \"failure\" label was ignored: ReplayKit judges only from the recorded evidence." : ""),
+    });
+  },
+};
+
 /** Tried in order after the native CallLog and strict OpenAI formats. */
-export const READERS: FormatReader[] = [bland, retell, vapi, genericMessages, transcriptText];
+export const READERS: FormatReader[] = [bland, retell, vapi, genericMessages, eventLog, transcriptText];

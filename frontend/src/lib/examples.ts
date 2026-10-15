@@ -31,6 +31,10 @@ export const EXAMPLE_COPY: Record<string, ExampleCopy> = {
     title: "Shipping lookup timed out, agent answered anyway",
     description: "The shipping API timed out. The agent gave a delivery estimate instead of saying it couldn't check.",
   },
+  "reschedule-timeout-event-log": {
+    title: "Reschedule timed out, agent said it was moved",
+    description: "The reschedule API timed out with the outcome unknown. The agent told the caller the appointment was moved. (Event-log format.)",
+  },
   "booking-handled-correctly": {
     title: "Unavailable slot, handled correctly",
     description: "Same failed booking, but the agent told the caller and offered another time.",
