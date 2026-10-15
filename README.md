@@ -2,7 +2,7 @@
 
 ReplayKit is a developer tool that converts failed voice-agent calls into reproducible regression tests. It captures a real Bland agent execution, extracts the external tool interaction into a replay fixture, reproduces the recorded tool response through a deterministic mock webhook server, runs an updated agent against the same conditions, and reports whether the agent's behavior improved.
 
-The full brief lives in [docs/PROJECT_CONTEXT.md](docs/PROJECT_CONTEXT.md).
+**Start here:** [CONTEXT.md](CONTEXT.md) is the project context: the problem, the first test case, the rules every implementation must follow, and the tech stack guidance. The original brief for the replay-engine slice is in [docs/PROJECT_CONTEXT.md](docs/PROJECT_CONTEXT.md).
 
 ## Repository layout
 
