@@ -29,10 +29,17 @@ export interface ToolOutcome {
   messages: string[];
 }
 
-const FLAG_KEYS = new Set(["success", "ok", "succeeded", "successful"]);
-const STATUS_KEYS = new Set(["status", "state", "result", "outcome"]);
-const ERROR_KEYS = new Set(["error", "errors", "error_message", "errormessage", "error_code", "errorcode", "failure_reason"]);
-const MESSAGE_KEYS = new Set(["message", "error", "error_message", "errormessage", "reason", "detail", "details", "failure_reason"]);
+// Field names in English plus common Spanish, French, German, Italian and Portuguese equivalents.
+const FLAG_KEYS = new Set(["success", "ok", "succeeded", "successful", "exito", "éxito", "exitoso", "succes", "succès", "erfolg", "erfolgreich", "successo", "sucesso"]);
+const STATUS_KEYS = new Set(["status", "state", "result", "outcome", "estado", "statut", "etat", "état", "zustand", "stato", "situacao", "situação", "resultado", "résultat", "ergebnis"]);
+const ERROR_KEYS = new Set([
+  "error", "errors", "error_message", "errormessage", "error_code", "errorcode", "failure_reason", "failurereason",
+  "fehler", "erreur", "errore", "erro", "fallo", "falla",
+]);
+const MESSAGE_KEYS = new Set([
+  "message", "error", "error_message", "errormessage", "reason", "detail", "details", "failure_reason", "failurereason",
+  "mensaje", "mensagem", "nachricht", "meldung", "fehler", "erreur", "errore", "motivo", "raison", "grund",
+]);
 const NESTED_KEYS = new Set(["data", "result", "response", "payload"]);
 /** Numeric HTTP-style codes inside the body, e.g. {"status": 409} or {"statusCode": 500}. */
 const STATUS_CODE_KEYS = new Set(["status", "status_code", "statuscode", "http_status"]);
@@ -43,8 +50,9 @@ const STATUS_CODE_KEYS = new Set(["status", "status_code", "statuscode", "http_s
 const ERROR_TEXT = /^\s*(?:error|exception|failed|failure)\b\s*[:\-]?/i;
 
 const FAILURE_STATUS =
-  /^(error|errored|fail|failed|failure|rejected|declined|denied|unavailable|invalid|not_found|timeout|timed_out|conflict)$/i;
-const SUCCESS_STATUS = /^(ok|success|succeeded|successful|confirmed|completed|complete|created|booked|done|approved|accepted)$/i;
+  /^(error|errored|fail|failed|failure|rejected|declined|denied|unavailable|invalid|not_found|timeout|timed_out|conflict|fallido|fallo|falla|rechazado|denegado|echec|échec|rejete|rejeté|refuse|refusé|fehlgeschlagen|fehler|abgelehnt|fallito|errore|falha|falhou|recusado)$/i;
+const SUCCESS_STATUS =
+  /^(ok|success|succeeded|successful|confirmed|completed|complete|created|booked|done|approved|accepted|exitoso|exito|éxito|confirmado|completado|reussi|réussi|confirme|confirmé|erfolgreich|bestatigt|bestätigt|confermato|sucesso|concluido|concluído)$/i;
 
 function render(value: JsonValue): string {
   return typeof value === "string" ? value : JSON.stringify(value);
@@ -79,7 +87,8 @@ function scanObject(obj: JsonObject, basePath: string, signals: OutcomeSignal[],
         if (typeof v === "string" && v.trim()) messages.push(v.trim());
       }
     }
-    if (depth === 0 && NESTED_KEYS.has(key) && isJsonObject(value)) scanObject(value, path, signals, messages, depth + 1);
+    // Status flags often sit one or two objects down (data.ok, permit.status, body.result.state).
+    if (depth < 2 && isJsonObject(value) && (NESTED_KEYS.has(key) || depth === 0 || !FLAG_KEYS.has(key))) scanObject(value, path, signals, messages, depth + 1);
   }
 }
 

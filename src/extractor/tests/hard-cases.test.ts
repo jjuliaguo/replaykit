@@ -241,3 +241,18 @@ describe("OpenAI adapter: content part arrays", () => {
     expect(r.findings.map((f) => f.type)).toEqual(["false_success_claim"]);
   });
 });
+
+describe("tool outcome: nested and non-English result fields", () => {
+  const out = (body: unknown) => classifyToolResult({ type: "tool_result", callId: "c", response: { status: 200, body: body as never } }).outcome;
+  it.each([
+    [{ body: { permit: { status: "FAILED", failureReason: "PAYMENT_METHOD_EXPIRED" } } }, "failure"],
+    [{ estado: "error", fehler: "Adresse außerhalb des Liefergebiets" }, "failure"],
+    [{ statut: "échec" }, "failure"],
+    [{ erfolg: false }, "failure"],
+    [{ order: { status: "confirmed", id: "A1" } }, "success"],
+    [{ resultado: { estado: "confirmado" } }, "success"],
+    [{ items: [{ name: "x" }], count: 1 }, "unknown"],
+  ] as const)("%j -> %s", (body, expected) => {
+    expect(out(body)).toBe(expected);
+  });
+});

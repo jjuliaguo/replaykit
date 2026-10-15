@@ -184,7 +184,7 @@ export function toCallLog(input: unknown, format: InputFormat = "auto", fallback
 }
 
 
-const TOOL_WORDS = /(tool|function|\bfn\b|api|webhook|http|request|response|status|error|exception|timeout|invoke)/i;
+const TOOL_WORDS = /(tool|function|\bfn\b|api|webhook|http|request|response|status|error|exception|timeout|invoke|\bcall\s+[a-z_][\w.]*\s*\(|\{\s*"[^"]+"\s*:|\b[1-5]\d\d\s+[A-Z][a-z]+)/i;
 
 /**
  * Like toCallLog, plus the optional LLM normalizer (llm-normalizer.ts) for

@@ -45,7 +45,8 @@ Return ONLY JSON: {"id": "<call id from the log or null>", "events": [ ... ]} wh
   {"type":"tool_result","callId":"<same id>","toolName":"<exact name>","status":<HTTP status or null>,"body":<exact response JSON or text, or null>,"error":{"kind":"timeout"|"network"|"http"|"invalid_response"|"unknown","message":"<exact error text>"} or null}
 Rules:
 - Copy every value VERBATIM from the log. Never paraphrase, summarize, translate, or invent text, names, numbers, or responses.
-- "user" is the caller/customer; "assistant" is the voice agent/bot. Omit internal reasoning, prompts, and metadata that nobody said.
+- "user" is the caller/customer. "assistant" is anything spoken TO the caller by the voice agent, bot, IVR, or system voice, however the log labels it (AGENT, SYSTEM, BOT, IVR, numeric ids, emoji).
+- Use "system" only for prompts, notes, or metadata that nobody said aloud. Omit internal reasoning and chatter between engineers (e.g. Slack comments around a pasted log).
 - Each tool/API/function/webhook invocation is a tool_call; its outcome is a tool_result with the same callId (make up short ids like "c1" if the log has none).
 - A failure can be an HTTP status >= 400, an error/exception/timeout, or a failure flag inside a 200 response body: keep the body exactly as logged.
 - Keep chronological order.`;

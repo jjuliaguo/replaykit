@@ -114,6 +114,11 @@ export function readTranscriptText(text: string, id: string, provider = "transcr
       continue;
     }
     const m = raw.match(LINE);
+    // "Dana Whitfield  10:52 AM" is a name and a clock time, not a speaker line.
+    if (m && /^\d{2}\b/.test(m[2] ?? "") && /\s\d{1,2}$/.test(m[1] ?? "")) {
+      if (raw.trim() && current) (current as { parts: string[] }).parts.push(raw.trim());
+      continue;
+    }
     if (m) {
       const speaker = m[1]!.trim();
       let role = roleOf(speaker);
