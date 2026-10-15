@@ -27,7 +27,11 @@ import { renderHtmlReport } from "../replay/report/html-report.js";
 import { runReplaySuite, type AgentSpec } from "../replay/pipeline.js";
 import { parseFixture } from "../shared/types.js";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+/**
+ * Repository root, where examples/ and fixtures/ live. Overridable because a
+ * bundled serverless function ships those folders next to the bundle.
+ */
+const ROOT = process.env.REPLAYKIT_ROOT ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 /** Built React app (frontend/). Built with `npm run build:web`. */
 export const DEFAULT_STATIC_DIR = path.join(ROOT, "frontend/dist");
 const EXAMPLES_DIR = path.join(ROOT, "examples/call-logs");
@@ -250,10 +254,15 @@ export interface WebServerOptions extends Partial<Pick<DeployConfig, "apiOnly" |
 }
 
 export function createWebServer(options: WebServerOptions = {}): http.Server {
+  return http.createServer(createRequestHandler(options));
+}
+
+/** The whole app as a plain (req, res) handler: used by the local server and by serverless functions. */
+export function createRequestHandler(options: WebServerOptions = {}): (req: http.IncomingMessage, res: http.ServerResponse) => Promise<void> {
   const staticDir = path.resolve(options.staticDir ?? DEFAULT_STATIC_DIR);
   const corsOrigins = options.corsOrigins ?? [];
   const limiter = new RateLimiter(options.rateLimitPerMinute ?? 0);
-  return http.createServer(async (req, res) => {
+  return async (req, res) => {
     const url = new URL(req.url ?? "/", "http://localhost");
     const route = `${req.method} ${url.pathname}`;
     try {
@@ -310,7 +319,7 @@ export function createWebServer(options: WebServerOptions = {}): http.Server {
       if (status === 500) console.error(error);
       send(res, status, { error: (error as Error).message });
     }
-  });
+  };
 }
 
 export function listen(server: http.Server, port: number, host = "127.0.0.1"): Promise<string> {

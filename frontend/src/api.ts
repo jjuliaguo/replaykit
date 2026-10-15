@@ -89,7 +89,8 @@ export class ApiError extends Error {}
  * VITE_API_BASE is set at build time to the Railway URL.
  */
 export const API_BASE: string = String(import.meta.env.VITE_API_BASE ?? "").replace(/\/+$/, "");
-export const IS_HOSTED = API_BASE !== "";
+/** Hosted publicly: either a separate API (Railway) or a same-origin serverless API (Vercel). */
+export const IS_HOSTED = API_BASE !== "" || import.meta.env.VITE_PUBLIC_DEMO === "1";
 
 async function request<T>(path: string, body?: unknown): Promise<T> {
   let res: Response;

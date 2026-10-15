@@ -109,3 +109,13 @@ describe("server in deployment mode", () => {
     expect(((await res.json()) as { ok: boolean }).ok).toBe(true);
   });
 });
+
+describe("Vercel function URL restoration", () => {
+  it("rebuilds the browser's /api path from Vercel's rewrite", async () => {
+    const { restorePath } = await import("../vercel-function.js");
+    expect(restorePath("/api?__path=health")).toBe("/api/health");
+    expect(restorePath("/api?__path=example&name=booking-false-confirmation")).toBe("/api/example?name=booking-false-confirmation");
+    expect(restorePath("/api?name=x&__path=fixture")).toBe("/api/fixture?name=x");
+    expect(restorePath("/api/health")).toBe("/api/health");
+  });
+});
