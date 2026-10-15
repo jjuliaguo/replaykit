@@ -1,0 +1,36 @@
+# ReplayKit
+
+ReplayKit is a developer tool that converts failed voice-agent calls into reproducible regression tests. It captures a real Bland agent execution, extracts the external tool interaction into a replay fixture, reproduces the recorded tool response through a deterministic mock webhook server, runs an updated agent against the same conditions, and reports whether the agent's behavior improved.
+
+The full brief lives in [docs/PROJECT_CONTEXT.md](docs/PROJECT_CONTEXT.md).
+
+## Repository layout
+
+This repository holds two independent implementations of the same brief, built with two different AI coding tools, so they can be compared side by side.
+
+| Branch   | Built with  | Notes                                   |
+| -------- | ----------- | --------------------------------------- |
+| `main`   | n/a         | The brief and this README only.         |
+| `claude` | Claude Code | Claude's implementation.                |
+| `cursor` | Cursor      | Cursor's implementation.                |
+
+Each tool works only on its own branch. To compare the two:
+
+```bash
+git diff main claude --stat
+```
+
+```bash
+git diff claude cursor --stat
+```
+
+## Requirements common to both implementations
+
+- TypeScript and Node.js
+- Zod for fixture validation
+- OpenAI API for optional failure analysis and semantic evaluation
+- No database for the MVP
+- Recorded webhook responses are preserved without LLM modification
+- Execution traces and regression results are never fabricated
+- Successful HTTP responses that carry application-level failures are supported, not only HTTP 4xx/5xx
+- Small, modular, testable code
