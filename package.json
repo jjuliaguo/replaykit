@@ -1,0 +1,25 @@
+{
+  "name": "replaykit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ReplayKit: turn failed voice-agent calls into reproducible regression tests.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "replay:serve": "tsx src/replay/serve.ts",
+    "replay:run": "tsx src/replay/run.ts",
+    "test": "node --import tsx --test \"src/replay/tests/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "openai": "^7.34.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
