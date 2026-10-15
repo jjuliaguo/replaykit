@@ -10,7 +10,7 @@
  */
 import { isJsonObject, type JsonValue } from "../../shared/json.js";
 import type { Evidence } from "../../shared/types.js";
-import { findReferences } from "../analysis/claims.js";
+import { findReferences, normalizeReference } from "../analysis/claims.js";
 import type { Detector, Finding } from "./context.js";
 
 const ID_KEY = /(^id$|_id$|Id$|^(confirmation|reference|booking|reservation|order|ticket|tracking|case|transaction)(_?(number|code|no))?$)/i;
@@ -30,16 +30,23 @@ function findNullIdField(body: JsonValue | undefined, base: string): string | nu
 
 export const detectFabricatedReference: Detector = (ctx) => {
   const findings: Finding[] = [];
+  const reported = new Set<string>();
   for (const message of ctx.assistantMessages) {
     const refs = findReferences(message.event.content);
     if (refs.length === 0) continue;
-    const priorText = ctx.log.events
-      .slice(0, message.index)
-      .filter((e) => e.type === "tool_result" || (e.type === "message" && e.role === "user"))
-      .map((e) => JSON.stringify(e).toLowerCase())
-      .join("\n");
-    const invented = refs.filter((r) => !priorText.includes(r.value.toLowerCase()));
+    // Legitimate sources for an identifier: tool results, the user, and the
+    // system prompt. Compared without punctuation or spaces, so "BK-2291",
+    // "bk2291", and a transcribed "B K 2 2 9 1" are the same reference.
+    const priorText = normalizeReference(
+      ctx.log.events
+        .slice(0, message.index)
+        .filter((e) => e.type === "tool_result" || (e.type === "message" && (e.role === "user" || e.role === "system")))
+        .map((e) => JSON.stringify(e))
+        .join(" "),
+    );
+    const invented = refs.filter((r) => !priorText.includes(normalizeReference(r.value)) && !reported.has(normalizeReference(r.value)));
     if (invented.length === 0) continue;
+    for (const r of invented) reported.add(normalizeReference(r.value));
 
     // Most recent prior tool result with a null/empty id-like field.
     let source: { resultIndex: number; toolName: string; path: string } | null = null;

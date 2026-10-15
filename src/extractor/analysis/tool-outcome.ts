@@ -34,6 +34,13 @@ const STATUS_KEYS = new Set(["status", "state", "result", "outcome"]);
 const ERROR_KEYS = new Set(["error", "errors", "error_message", "errormessage", "error_code", "errorcode", "failure_reason"]);
 const MESSAGE_KEYS = new Set(["message", "error", "error_message", "errormessage", "reason", "detail", "details", "failure_reason"]);
 const NESTED_KEYS = new Set(["data", "result", "response", "payload"]);
+/** Numeric HTTP-style codes inside the body, e.g. {"status": 409} or {"statusCode": 500}. */
+const STATUS_CODE_KEYS = new Set(["status", "status_code", "statuscode", "http_status"]);
+/**
+ * Plain-text tool results that start like an error. Agent frameworks commonly
+ * return tool exceptions this way ("Error: connection refused").
+ */
+const ERROR_TEXT = /^\s*(?:error|exception|failed|failure)\b\s*[:\-]?/i;
 
 const FAILURE_STATUS =
   /^(error|errored|fail|failed|failure|rejected|declined|denied|unavailable|invalid|not_found|timeout|timed_out|conflict)$/i;
@@ -54,8 +61,11 @@ function scanObject(obj: JsonObject, basePath: string, signals: OutcomeSignal[],
   for (const [rawKey, value] of Object.entries(obj)) {
     const key = rawKey.toLowerCase();
     const path = `${basePath}.${rawKey}`;
-    if (FLAG_KEYS.has(key) && typeof value === "boolean") {
-      signals.push({ outcome: value ? "success" : "failure", path, value: String(value), reason: `${rawKey} is ${value}` });
+    const flag = typeof value === "boolean" ? value : typeof value === "string" && /^(true|false)$/i.test(value) ? value.toLowerCase() === "true" : null;
+    if (FLAG_KEYS.has(key) && flag !== null) {
+      signals.push({ outcome: flag ? "success" : "failure", path, value: String(value), reason: `${rawKey} is ${JSON.stringify(value)}` });
+    } else if (STATUS_CODE_KEYS.has(key) && typeof value === "number" && Number.isInteger(value) && value >= 400 && value <= 599) {
+      signals.push({ outcome: "failure", path, value: String(value), reason: `${rawKey} is ${value}` });
     } else if (STATUS_KEYS.has(key) && typeof value === "string") {
       if (FAILURE_STATUS.test(value)) signals.push({ outcome: "failure", path, value, reason: `${rawKey} is "${value}"` });
       else if (SUCCESS_STATUS.test(value)) signals.push({ outcome: "success", path, value, reason: `${rawKey} is "${value}"` });
@@ -88,7 +98,12 @@ export function classifyToolResult(result: ToolResultEvent | null): ToolOutcome 
   }
   const body = result.response?.body;
   if (isJsonObject(body)) scanObject(body, "response.body", signals, messages, 0);
-  else if (typeof body === "string" && body.trim() && status !== undefined && status >= 400) messages.push(body.trim());
+  else if (typeof body === "string" && body.trim()) {
+    if (ERROR_TEXT.test(body)) {
+      signals.push({ outcome: "failure", path: "response.body", value: body.trim().slice(0, 200), reason: "result text reports an error" });
+      messages.push(body.trim());
+    } else if (status !== undefined && status >= 400) messages.push(body.trim());
+  }
 
   const hasFailure = signals.some((s) => s.outcome === "failure");
   const hasSuccess = signals.some((s) => s.outcome === "success");

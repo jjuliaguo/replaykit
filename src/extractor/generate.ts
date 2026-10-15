@@ -76,6 +76,101 @@ function replayInteractions(log: CallLog): { interactions: ReplayInteraction[]; 
   return { interactions, skipped };
 }
 
+/**
+ * Headers that carry credentials. Real webhook logs include API keys and
+ * session tokens; fixtures get committed to repos, so these are replaced.
+ * Response BODIES are never touched: they must replay verbatim.
+ */
+const SENSITIVE_HEADER = /^(authorization|proxy-authorization|cookie|set-cookie|x-api-key|api-key|x-auth-token|x-access-token|x-secret|x-webhook-secret|x-signature)$|token|secret|password/i;
+export const REDACTED = "[REDACTED]";
+
+function redactHeaders(headers: Record<string, string> | undefined, where: string, redacted: string[]): Record<string, string> | undefined {
+  if (!headers) return undefined;
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(headers)) {
+    if (SENSITIVE_HEADER.test(k)) {
+      out[k] = REDACTED;
+      redacted.push(`${where}.${k}`);
+    } else out[k] = v;
+  }
+  return out;
+}
+
+function redactEvents(events: CallLog["events"], redacted: string[]): CallLog["events"] {
+  return events.map((e, i) => {
+    if (e.type !== "tool_result") return structuredClone(e);
+    const copy = structuredClone(e);
+    if (copy.request?.headers) copy.request.headers = redactHeaders(copy.request.headers, `original.events.${i}.request.headers`, redacted);
+    if (copy.response?.headers) copy.response.headers = redactHeaders(copy.response.headers, `original.events.${i}.response.headers`, redacted);
+    return copy;
+  });
+}
+
+/** Infer a JSON Schema object from argument values the agent actually sent. */
+function inferParameters(samples: JsonValue[]): Record<string, JsonValue> | undefined {
+  const properties: Record<string, JsonValue> = {};
+  for (const sample of samples) {
+    if (typeof sample !== "object" || sample === null || Array.isArray(sample)) continue;
+    for (const [key, value] of Object.entries(sample)) {
+      if (key in properties) continue;
+      const type =
+        value === null ? "null" : Array.isArray(value) ? "array" : typeof value === "number" ? (Number.isInteger(value) ? "integer" : "number") : typeof value;
+      properties[key] = { type };
+    }
+  }
+  return Object.keys(properties).length ? { type: "object", properties } : undefined;
+}
+
+/**
+ * Tool definitions for the replayed agent. Logs often omit them; without a
+ * definition the replayed agent cannot call the tool at all. Missing tools
+ * get a minimal definition built only from the log (name and observed
+ * argument types), and are listed in metadata.inferredTools.
+ */
+function toolDefinitions(log: CallLog, findings: Finding[]): { tools: CallLog["tools"]; inferred: string[] } {
+  const tools = structuredClone(log.tools);
+  const known = new Set(tools.map((t) => t.name));
+  const needed = [
+    ...log.events.flatMap((e) => (e.type === "tool_call" ? [e.toolName] : [])),
+    ...(log.workflow?.requiredTools ?? []),
+    ...findings.flatMap((f) => (f.toolName ? [f.toolName] : [])),
+  ];
+  const inferred: string[] = [];
+  for (const name of needed) {
+    if (known.has(name)) continue;
+    known.add(name);
+    inferred.push(name);
+    const samples = log.events.flatMap((e) => (e.type === "tool_call" && e.toolName === name ? [e.arguments as JsonValue] : []));
+    const parameters = inferParameters(samples);
+    tools.push({ name, ...(parameters ? { parameters } : {}) });
+  }
+  return { tools, inferred };
+}
+
+/**
+ * Checks that the generated fixture can actually be replayed, beyond what
+ * the shared schema checks. Failing these is a bug in the extractor.
+ */
+export function checkReplayable(fixture: ReplayFixture): string[] {
+  const problems: string[] = [];
+  const toolNames = new Set(fixture.tools.map((t) => t.name));
+  const last = fixture.scenario.messages[fixture.scenario.messages.length - 1];
+  if (!last || last.role !== "user") problems.push("scenario.messages must end with a user message so the agent has something to respond to");
+  for (const i of fixture.replay.interactions) {
+    if (!toolNames.has(i.toolName)) problems.push(`interaction ${i.id} uses tool "${i.toolName}" missing from tools`);
+    const source = fixture.original.events[i.sourceEventIndex];
+    if (!source || source.type !== "tool_result" || source.callId !== i.id) problems.push(`interaction ${i.id} does not point at its tool_result`);
+  }
+  for (const e of fixture.expectations) {
+    if ("toolName" in e && !toolNames.has(e.toolName)) problems.push(`expectation ${e.id} uses tool "${e.toolName}" missing from tools`);
+  }
+  const scenarioUsers = fixture.scenario.messages.filter((m) => m.role === "user").map((m) => m.content);
+  if (scenarioUsers.some((u, k) => fixture.scenario.userTurns[k] !== u)) {
+    problems.push("scenario.userTurns must start with the user messages in scenario.messages, in order");
+  }
+  return problems;
+}
+
 /** Accumulates expectations, merging duplicates by id. */
 class ExpectationSet {
   private readonly byId = new Map<string, Expectation>();
@@ -189,7 +284,10 @@ export function generateFixture(log: CallLog, findings: Finding[], options: Gene
   const expectations = new ExpectationSet();
   for (const f of findings) expectationsFor(f, expectations);
 
-  const { interactions, skipped } = replayInteractions(log);
+  const redacted: string[] = [];
+  const safeLog: CallLog = { ...log, events: redactEvents(log.events, redacted) };
+  const { interactions, skipped } = replayInteractions(safeLog);
+  const { tools: toolDefs, inferred } = toolDefinitions(log, findings);
   const tools = [...new Set(findings.map((f) => f.toolName).filter((t): t is string => !!t))];
   const types = [...new Set(findings.map((f) => f.type))];
   const label = log.kind === "synthetic" ? "SYNTHETIC: " : "";
@@ -212,11 +310,11 @@ export function generateFixture(log: CallLog, findings: Finding[], options: Gene
       messages: scenarioMessages(log, findings),
       userTurns: log.events.filter((e) => e.type === "message" && e.role === "user").map((e) => (e as { content: string }).content),
     },
-    tools: structuredClone(log.tools),
+    tools: toolDefs,
     ...(log.workflow ? { workflow: structuredClone(log.workflow) } : {}),
     replay: { interactions, onUnmatchedCall: "error_response" as const },
     original: {
-      events: structuredClone(log.events),
+      events: safeLog.events,
       ...(finalAgentMessage && finalAgentMessage.type === "message" ? { finalAgentMessage: finalAgentMessage.content } : {}),
     },
     failures: findings.map((f) => ({
@@ -228,7 +326,14 @@ export function generateFixture(log: CallLog, findings: Finding[], options: Gene
       evidence: f.evidence,
     })),
     expectations: expectations.values(),
-    ...(skipped.length || log.notes ? { metadata: { ...(skipped.length ? { skippedInteractions: skipped } : {}), ...(log.notes ? { notes: log.notes } : {}) } } : {}),
   };
-  return parseFixture(fixture, `generated fixture for ${log.id}`);
+  const metadata: Record<string, JsonValue> = {};
+  if (skipped.length) metadata.skippedInteractions = skipped;
+  if (inferred.length) metadata.inferredTools = inferred;
+  if (redacted.length) metadata.redactedHeaders = redacted;
+  if (log.notes) metadata.notes = log.notes;
+  const validated = parseFixture(Object.keys(metadata).length ? { ...fixture, metadata } : fixture, `generated fixture for ${log.id}`);
+  const problems = checkReplayable(validated);
+  if (problems.length) throw new Error(`generated fixture for ${log.id} is not replayable:\n  - ${problems.join("\n  - ")}`);
+  return validated;
 }

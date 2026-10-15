@@ -20,6 +20,7 @@ describe("example logs end to end", () => {
     ["reservation-openai-format", ["false_success_claim", "tool_result_misread"]],
     ["booking-handled-correctly", []],
     ["booking-retry-succeeds", []],
+    ["multi-turn-success", []],
   ] as const)("%s -> %j", (name, expected) => {
     const r = extract(loadExample(name), { extractedAt: FIXED });
     expect(r.findings.map((f) => f.type)).toEqual(expected);

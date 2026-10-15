@@ -17,5 +17,9 @@ export const DETECTORS: ReadonlyArray<{ name: string; run: Detector }> = [
 
 export function detectFailures(log: CallLog, detectors = DETECTORS): Finding[] {
   const ctx = buildContext(log);
-  return detectors.flatMap((d) => d.run(ctx));
+  const findings = detectors.flatMap((d) => d.run(ctx));
+  // A failed call that later led to a false success claim is reported once,
+  // as the claim (the stronger, more specific finding).
+  const claimed = new Set(findings.filter((f) => f.type === "false_success_claim" && f.callId).map((f) => f.callId));
+  return findings.filter((f) => !(f.type === "unhandled_tool_error" && f.callId && claimed.has(f.callId)));
 }

@@ -6,7 +6,7 @@
  * this detector does nothing unless the log declares
  * `workflow.requiredTools`. It never guesses which tools were required.
  */
-import { mentionedKeywords } from "../analysis/keywords.js";
+import { relation } from "../analysis/keywords.js";
 import type { Detector, Finding } from "./context.js";
 
 export const detectUnverifiedSuccessClaim: Detector = (ctx) => {
@@ -22,7 +22,8 @@ export const detectUnverifiedSuccessClaim: Detector = (ctx) => {
       const calledBefore = ctx.interactions.some((i) => i.toolName === toolName && i.callIndex < message.index);
       if (calledBefore) continue;
       const keywords = ctx.keywords(toolName);
-      const related = message.analysis.successClaims.filter((c) => mentionedKeywords(c.sentence, keywords).length > 0);
+      const related = message.analysis.successClaims.filter((c) => relation(c.sentence, keywords) !== "none");
+      const byName = message.analysis.successClaims.some((c) => relation(c.sentence, keywords) === "name");
       // With several required tools, an unrelated claim cannot be attributed to any one of them.
       if (related.length === 0 && required.length > 1) continue;
       const used = related.length > 0 ? related : message.analysis.successClaims;
@@ -31,7 +32,7 @@ export const detectUnverifiedSuccessClaim: Detector = (ctx) => {
         type: "unverified_success_claim",
         summary: `The agent claimed success ("${used[0]!.sentence}") without calling ${toolName}, which the workflow requires.`,
         toolName,
-        confidence: related.length > 0 ? "high" : "medium",
+        confidence: byName ? "high" : "medium",
         detector: "unverified-success-claim",
         evidence: used.map((c) => ({
           eventIndex: message.index,

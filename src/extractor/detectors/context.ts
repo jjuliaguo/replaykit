@@ -5,7 +5,7 @@
 import type { CallLog, DetectedFailure, MessageEvent, ToolDefinition } from "../../shared/types.js";
 import { analyzeMessage, type ClaimAnalysis } from "../analysis/claims.js";
 import { pairInteractions, type ToolInteraction } from "../analysis/interactions.js";
-import { toolKeywords } from "../analysis/keywords.js";
+import { toolKeywords, type ToolKeywords } from "../analysis/keywords.js";
 import { classifyToolResult, type ToolOutcome } from "../analysis/tool-outcome.js";
 
 export interface AnalyzedInteraction extends ToolInteraction {
@@ -23,7 +23,9 @@ export interface DetectionContext {
   interactions: AnalyzedInteraction[];
   assistantMessages: AssistantMessage[];
   toolDefinitions: Map<string, ToolDefinition>;
-  keywords(toolName: string): string[];
+  keywords(toolName: string): ToolKeywords;
+  /** Index of the first user message after `index`, or Infinity. */
+  nextUserMessage(index: number): number;
 }
 
 /** Extra knowledge a detector attaches for the fixture generator. */
@@ -51,12 +53,16 @@ export function buildContext(log: CallLog): DetectionContext {
       assistantMessages.push({ index, event, analysis: analyzeMessage(event.content) });
     }
   });
-  const keywordCache = new Map<string, string[]>();
+  const keywordCache = new Map<string, ToolKeywords>();
+  const userIndexes = log.events.flatMap((e, i) => (e.type === "message" && e.role === "user" ? [i] : []));
   return {
     log,
     interactions,
     assistantMessages,
     toolDefinitions,
+    nextUserMessage(index) {
+      return userIndexes.find((i) => i > index) ?? Number.POSITIVE_INFINITY;
+    },
     keywords(toolName) {
       let k = keywordCache.get(toolName);
       if (!k) {
@@ -79,4 +85,15 @@ export function responseWindow(ctx: DetectionContext, interaction: AnalyzedInter
   const nextCall = ctx.interactions.find((i) => i.toolName === interaction.toolName && i.callIndex > start);
   const end = nextCall ? nextCall.callIndex : Number.POSITIVE_INFINITY;
   return ctx.assistantMessages.filter((m) => m.index > start && m.index < end);
+}
+
+/**
+ * The agent's immediate turn after an interaction's result: its window,
+ * cut at the next user message. Voice agents often split one turn into
+ * several messages ("One moment..." then the real answer).
+ */
+export function immediateTurn(ctx: DetectionContext, interaction: AnalyzedInteraction): AssistantMessage[] {
+  if (interaction.resultIndex === null) return [];
+  const userAfter = ctx.nextUserMessage(interaction.resultIndex);
+  return responseWindow(ctx, interaction).filter((m) => m.index < userAfter);
 }

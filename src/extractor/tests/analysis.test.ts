@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { analyzeMessage, findReferences, splitSentences } from "../analysis/claims.js";
-import { mentionedKeywords, toolKeywords } from "../analysis/keywords.js";
+import { relation, toolKeywords } from "../analysis/keywords.js";
 import { classifyToolResult } from "../analysis/tool-outcome.js";
 import type { ToolResultEvent } from "../../shared/types.js";
 
@@ -99,11 +99,18 @@ describe("findReferences", () => {
 });
 
 describe("keywords", () => {
-  it("derives stems from tool name and description", () => {
+  it("derives stems from tool name and description, separately", () => {
     const k = toolKeywords("book_appointment", { name: "book_appointment", description: "Books an appointment slot." });
-    expect(k).toContain("book");
-    expect(k).toContain("appoint");
-    expect(mentionedKeywords("Your appointment is confirmed", k)).toEqual(["appoint"]);
-    expect(toolKeywords("updateCustomerAddress")).toEqual(["update", "customer", "address"]);
+    expect(k.name).toEqual(["book", "appoint"]);
+    expect(k.description).toEqual(["slot"]);
+    expect(toolKeywords("updateCustomerAddress").name).toEqual(["update", "address"]);
+  });
+
+  it("ranks name matches above description matches", () => {
+    const k = toolKeywords("lookup_order", { name: "lookup_order", description: "Looks up an order by number." });
+    expect(relation("Your order is on its way", k)).toBe("name");
+    const r = toolKeywords("issue_refund", { name: "issue_refund", description: "Refunds an order." });
+    expect(relation("I've cancelled your order", r)).toBe("description");
+    expect(relation("You're all set!", r)).toBe("none");
   });
 });

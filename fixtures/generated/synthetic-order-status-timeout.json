@@ -98,7 +98,7 @@
         },
         {
           "eventIndex": 3,
-          "description": "Agent's next reply contains no failure acknowledgement",
+          "description": "Agent reply with no failure acknowledgement",
           "quote": "Your package is on its way and should arrive in a couple of days."
         }
       ]
@@ -127,7 +127,7 @@
         },
         {
           "eventIndex": 3,
-          "description": "Agent's next reply contains no failure acknowledgement",
+          "description": "Agent reply with no failure acknowledgement",
           "quote": "Your package is on its way and should arrive in a couple of days."
         }
       ],
@@ -150,7 +150,7 @@
         },
         {
           "eventIndex": 3,
-          "description": "Agent's next reply contains no failure acknowledgement",
+          "description": "Agent reply with no failure acknowledgement",
           "quote": "Your package is on its way and should arrive in a couple of days."
         }
       ],

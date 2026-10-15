@@ -14,16 +14,35 @@ const ToolCallSchema = z.object({
   function: z.object({ name: z.string(), arguments: z.string() }),
 });
 
+/**
+ * Content is either a string or an array of parts (current OpenAI SDKs send
+ * `[{type: "text", text}]`). Non-text parts (images, audio) carry no claims
+ * we can analyze and are dropped.
+ */
+const ContentSchema = z
+  .union([
+    z.string(),
+    z.array(z.looseObject({ type: z.string(), text: z.string().optional(), refusal: z.string().optional() })),
+  ])
+  .transform((c) =>
+    typeof c === "string"
+      ? c
+      : c
+          .map((p) => p.text ?? p.refusal ?? "")
+          .filter(Boolean)
+          .join("\n"),
+  );
+
 const MessageSchema = z.discriminatedUnion("role", [
-  z.object({ role: z.literal("system"), content: z.string() }),
-  z.object({ role: z.literal("developer"), content: z.string() }),
-  z.object({ role: z.literal("user"), content: z.string() }),
+  z.object({ role: z.literal("system"), content: ContentSchema }),
+  z.object({ role: z.literal("developer"), content: ContentSchema }),
+  z.object({ role: z.literal("user"), content: ContentSchema }),
   z.object({
     role: z.literal("assistant"),
-    content: z.string().nullable().optional(),
+    content: ContentSchema.nullable().optional(),
     tool_calls: z.array(ToolCallSchema).optional(),
   }),
-  z.object({ role: z.literal("tool"), tool_call_id: z.string(), content: z.string() }),
+  z.object({ role: z.literal("tool"), tool_call_id: z.string(), content: ContentSchema }),
 ]);
 
 export const OpenAIChatLogSchema = z.object({

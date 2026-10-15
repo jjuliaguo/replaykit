@@ -85,13 +85,41 @@ The first example, the false appointment confirmation, is just one input. Nothin
 
 **Expectations, not verdicts.** The fixture says what a correct agent must do (`tool_called`, `no_success_claim`, `acknowledges_failure`, `consistent_with_tool_result`, `rubric`). It never stores pass or fail; the replay engine computes that from a real run.
 
+## Review against CONTEXT.md
+
+A critical review of the first version found these problems. Each fix has tests in `src/extractor/tests/hard-cases.test.ts`.
+
+| Problem | Effect before | Fix |
+| --- | --- | --- |
+| Typographic apostrophes ("You’re all set") | Missed claims and missed negations in typical LLM output | Normalize quotes before analysis |
+| "No problem, your appointment is confirmed" | Claim dropped: "no" anywhere in the sentence counted as negation | Strip friendly idioms; check negation only in the clause that makes the claim |
+| "I can confirm it's booked" | Claim dropped as a hedge | "I can" removed from hedges |
+| "Dr. Patel" in a sentence | Sentence split, so the claim lost its link to the tool and its confidence dropped | Protect common abbreviations |
+| Filler first ("One moment") after a timeout | Unhandled-error fired even when the next message acknowledged the error | Judge the agent's whole turn |
+| Unrelated vague claim several turns after an acknowledged failure | False positive | Vague claims count only in the agent's immediate turn |
+| Same failed call reported as both an unhandled error and a false claim | Double count | Keep only the false claim |
+| Description words as tool links ("order" for `lookup_order`) | High confidence on a weak link | Name matches give high confidence, description matches give medium |
+| "BK-2291" said versus "BK2291" returned | Reported as invented | Compare IDs ignoring case, spaces, and punctuation |
+| Reference numbers from the system prompt | Reported as invented | System prompt counts as a source |
+| `success: "false"`, `{"status": 409}`, "Error: ..." string results | Treated as unknown, so failures were missed | Recognized as failures |
+| Authorization and secret headers in logs | Copied into committed fixtures | Credential headers redacted; response bodies untouched |
+| Logs without tool definitions | Replayed agent had no tool to call | Minimal definitions inferred from observed calls and listed in metadata |
+| OpenAI content sent as part arrays | Log rejected | Parts supported |
+| No check that a fixture can actually be replayed | Possible unusable fixtures | `checkReplayable` runs before returning; contract tests replay each fixture's own trace |
+
 ## Known limitations
 
 - **English only.** Claim and acknowledgement patterns are English regular expressions.
 - **Phrasing recall.** Indirect claims ("we'll see you Friday at 3") are not detected. This is deliberate for precision, but it means some real failures are missed.
-- **Mixed sentences.** A sentence that both apologizes and claims success ("Sorry for the wait, you're booked") is treated as not a claim, because it contains negation-like words.
-- **Unknown outcomes are skipped.** Tools that signal failure in an unconventional field are classified `unknown` and never produce a `false_success_claim`.
+- **Negation inside the claim clause.** "Sorry, you're booked" is handled because of the comma, but "Sorry you're booked" with no punctuation is treated as not a claim.
+- **Unknown outcomes are skipped.** Tools that signal failure in an unconventional field, such as `available: false` or `status: "pending"`, are classified `unknown` and never produce a `false_success_claim`. This is deliberate for precision.
+- **Claims split across messages.** Voice platforms can emit "Your appointment" and "is confirmed" as separate events. Each message is analyzed alone, so that claim is missed.
+- **Spoken numbers.** "Confirmation number four eight two one three" contains no digits and is not checked for invented references.
+- **Informational statements.** "Your order was shipped Monday" after a failed lookup is reported as a false success claim. It is a real failure, but strictly it is a misread, not a false action claim.
+- **Attribution with several failing tools.** A vague claim in the immediate turn is attributed to every failed tool in that turn.
+- **Duplicate call ids.** If a platform reuses call ids, results pair with the most recent call that has that id.
+- **PII.** Header credentials are redacted, but conversation text and response bodies are kept verbatim, as replay requires. Treat fixtures from real calls as sensitive data.
 - **`unhandled_tool_error` is weaker evidence.** It relies on the absence of failure language, so it is always medium confidence. Filter it out with `--min-confidence high`.
 - **Single-turn replay start.** `scenario.messages` stops at the first tool call. Multi-turn conversations keep all user turns in `scenario.userTurns`, but driving later turns is up to the replay engine.
 - **No Bland adapter** until a real Bland log is available.
-- **Synthetic data only.** All examples are hand-written and labeled `SYNTHETIC`. Accuracy on real calls is unmeasured.
+- **Synthetic data only.** All examples and tests are hand-written and labeled `SYNTHETIC`. The hard-case tests show the rules behave as designed on the phrasings we thought of. They are not evidence of precision or recall on real calls, which remain unmeasured.
