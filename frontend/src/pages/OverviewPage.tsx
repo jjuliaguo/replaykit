@@ -312,11 +312,6 @@ export function OverviewPage({ calls }: { calls: CallSummary[] | null }) {
                 </li>
               ))}
             </ol>
-
-            <p className="text-[12.5px] text-muted">
-              The fixed agent is the replay engine's deterministic stand-in, not your production agent. Running your own agent against this fixture needs a live runner,
-              which this offline build does not include.
-            </p>
           </>
         )}
       </div>
