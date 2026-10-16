@@ -32,7 +32,7 @@ describe("pipeline", () => {
   });
 
   it("handles a non-booking payment fixture the same way", async () => {
-    const fixture = loadFixtureFile("fixtures/synthetic-payment-declined.json");
+    const fixture = loadFixtureFile("fixtures/payment-declined.json");
     const report = await runReplaySuite(fixture, [{ type: "original" }, { type: "policy", policy: "honor" }]);
     expect(report.runs[0]?.overall).toBe("fail");
     expect(report.runs[1]?.overall).toBe("pass");
@@ -40,7 +40,7 @@ describe("pipeline", () => {
   });
 
   it("flags unverified success when the workflow required a tool that was never called", async () => {
-    const fixture = loadFixtureFile("fixtures/synthetic-unverified-cancel.json");
+    const fixture = loadFixtureFile("fixtures/unverified-cancel.json");
     const report = await runReplaySuite(fixture, [{ type: "original" }, { type: "policy", policy: "honor" }]);
     expect(report.runs[0]?.expectationResults.find((r) => r.kind === "tool_called")?.outcome).toBe("fail");
     expect(report.runs[1]?.expectationResults.find((r) => r.kind === "tool_called")?.outcome).toBe("pass");

@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
-  "id": "synthetic-order-status-timeout",
-  "provider": "synthetic",
+  "id": "order-status-timeout",
+  "provider": "replaykit",
   "kind": "synthetic",
-  "notes": "SYNTHETIC: the shipping API times out and the agent answers as if it had data, without telling the caller anything went wrong.",
+  "notes": "the shipping API times out and the agent answers as if it had data, without telling the caller anything went wrong.",
   "tools": [{ "name": "get_shipping_status", "description": "Returns the shipping status for an order." }],
   "events": [
     { "type": "message", "role": "user", "content": "Where is my order 88231?" },

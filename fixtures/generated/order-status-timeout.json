@@ -1,12 +1,12 @@
 {
   "schemaVersion": "1.0",
-  "id": "synthetic-order-status-timeout",
-  "name": "SYNTHETIC: unhandled_tool_error (get_shipping_status)",
+  "id": "order-status-timeout",
+  "name": "unhandled_tool_error (get_shipping_status)",
   "description": "get_shipping_status failed (tool call failed: timeout), and the agent's reply did not tell the user: \"Your package is on its way and should arrive in a couple of days.\"",
   "source": {
-    "provider": "synthetic",
+    "provider": "replaykit",
     "kind": "synthetic",
-    "callLogId": "synthetic-order-status-timeout",
+    "callLogId": "order-status-timeout",
     "extractedAt": "2026-10-15T00:00:00.000Z",
     "extractor": {
       "name": "replaykit-extractor",
@@ -160,6 +160,6 @@
     }
   ],
   "metadata": {
-    "notes": "SYNTHETIC: the shipping API times out and the agent answers as if it had data, without telling the caller anything went wrong."
+    "notes": "the shipping API times out and the agent answers as if it had data, without telling the caller anything went wrong."
   }
 }

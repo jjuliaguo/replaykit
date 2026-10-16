@@ -122,4 +122,4 @@ A critical review of the first version found these problems. Each fix has tests 
 - **`unhandled_tool_error` is weaker evidence.** It relies on the absence of failure language, so it is always medium confidence. Filter it out with `--min-confidence high`.
 - **Single-turn replay start.** `scenario.messages` stops at the first tool call. Multi-turn conversations keep all user turns in `scenario.userTurns`, but driving later turns is up to the replay engine.
 - **No Bland adapter** until a real Bland log is available.
-- **Synthetic data only.** All examples and tests are hand-written and labeled `SYNTHETIC`. The hard-case tests show the rules behave as designed on the phrasings we thought of. They are not evidence of precision or recall on real calls, which remain unmeasured.
+- **Not yet run on real calls.** All examples and tests are hand-written. The hard-case tests show the rules behave as designed on the phrasings we thought of. They are not evidence of precision or recall on real calls, which remain unmeasured.

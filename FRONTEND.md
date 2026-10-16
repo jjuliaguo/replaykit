@@ -44,7 +44,7 @@ npm run web
 
 The first build was reviewed from the point of view of an engineer tracing an API failure. These changes came out of that review:
 
-- Call and fixture IDs wrapped at hyphens instead of being cut off. They share a `synthetic-` prefix, and truncation hid the part that differs.
+- Call and fixture IDs wrapped at hyphens instead of being cut off, so the part that differs stays visible.
 - A root-cause strip was added, so the failure chain is readable without opening the trace.
 - The replay verbatim check was added. Faithful replay is the property everything else depends on, so it should be visible, not assumed.
 - Evidence in the expectation matrix was collapsed, because it buried the pass or fail reasons.
@@ -56,4 +56,4 @@ The first build was reviewed from the point of view of an engineer tracing an AP
 - **No live runner.** Agents in the replay view are the replay engine's deterministic stand-ins. Running a real agent needs a live runner, which is not built.
 - **Session-only imports.** Imported logs are lost on reload.
 - **Desktop layout.** The layout targets desktop widths. The two-pane views are not adapted for phones.
-- **Synthetic examples only.** No real Bland call data has been loaded.
+- **Not yet run on real calls.** No real Bland call data has been loaded.

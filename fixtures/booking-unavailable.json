@@ -1,12 +1,12 @@
 {
   "schemaVersion": "1.0",
-  "id": "synthetic-booking-unavailable-001",
-  "name": "SYNTHETIC: agent confirms an appointment after the booking API reported failure",
+  "id": "booking-unavailable-001",
+  "name": "agent confirms an appointment after the booking API reported failure",
   "description": "Hand-written example, not real Bland data. The booking tool returned HTTP 200 with success:false, and the agent told the caller the appointment was confirmed.",
   "source": {
-    "provider": "synthetic",
+    "provider": "replaykit",
     "kind": "synthetic",
-    "callLogId": "synthetic-booking-unavailable-001",
+    "callLogId": "booking-unavailable-001",
     "capturedAt": "2026-10-15T09:00:00Z",
     "extractedAt": "2026-10-15T09:00:00Z",
     "extractor": { "name": "hand-written", "version": "0.0.0" }

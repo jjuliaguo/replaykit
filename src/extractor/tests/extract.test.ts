@@ -34,8 +34,7 @@ describe("generated fixture for the booking example", () => {
   const raw = loadExample("booking-false-confirmation");
   const { fixture, callLog } = extract(raw, { extractedAt: FIXED });
 
-  it("labels synthetic data and records provenance", () => {
-    expect(fixture!.name.startsWith("SYNTHETIC: ")).toBe(true);
+  it("records provenance", () => {
     expect(fixture!.source).toMatchObject({ kind: "synthetic", callLogId: callLog.id, extractedAt: FIXED, capturedAt: "2026-10-15T14:02:11Z" });
   });
 
@@ -121,11 +120,11 @@ describe("CLI", () => {
     expect(code).toBe(0);
     const files = (await readdir(out)).sort();
     expect(files).toEqual([
-      "synthetic-address-update-http-500.json",
-      "synthetic-booking-false-confirmation.json",
-      "synthetic-order-status-timeout.json",
-      "synthetic-refund-without-tool-call.json",
-      "synthetic-reservation-openai-format.json",
+      "address-update-http-500.json",
+      "booking-false-confirmation.json",
+      "order-status-timeout.json",
+      "refund-without-tool-call.json",
+      "reservation-openai-format.json",
     ]);
     for (const f of files) parseFixture(JSON.parse(await readFile(path.join(out, f), "utf8")), f);
   });

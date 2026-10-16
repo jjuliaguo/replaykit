@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
-  "id": "synthetic-multi-turn-success",
-  "provider": "synthetic",
+  "id": "multi-turn-success",
+  "provider": "replaykit",
   "kind": "synthetic",
-  "notes": "SYNTHETIC negative control: a chatty multi-turn call with filler messages, idioms (“no problem”, “sorry for the wait”), typographic apostrophes, an availability check that returns available:false for one slot, and a booking that succeeds. No failure should be reported.",
+  "notes": "Negative control: a chatty multi-turn call with filler messages, idioms (“no problem”, “sorry for the wait”), typographic apostrophes, an availability check that returns available:false for one slot, and a booking that succeeds. No failure should be reported.",
   "tools": [
     { "name": "check_availability", "description": "Lists open slots for a date." },
     { "name": "book_appointment", "description": "Books an appointment slot for the caller." }

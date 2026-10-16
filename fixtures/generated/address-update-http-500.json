@@ -1,12 +1,12 @@
 {
   "schemaVersion": "1.0",
-  "id": "synthetic-address-update-http-500",
-  "name": "SYNTHETIC: false_success_claim (update_customer_address)",
+  "id": "address-update-http-500",
+  "name": "false_success_claim (update_customer_address)",
   "description": "update_customer_address reported failure (HTTP 500), but the agent told the user it succeeded: \"Your address has been updated to 12 Elm Street, Springfield.\"",
   "source": {
-    "provider": "synthetic",
+    "provider": "replaykit",
     "kind": "synthetic",
-    "callLogId": "synthetic-address-update-http-500",
+    "callLogId": "address-update-http-500",
     "extractedAt": "2026-10-15T00:00:00.000Z",
     "extractor": {
       "name": "replaykit-extractor",
@@ -162,6 +162,6 @@
     }
   ],
   "metadata": {
-    "notes": "SYNTHETIC: the CRM returns HTTP 500 and the agent says the address was updated."
+    "notes": "the CRM returns HTTP 500 and the agent says the address was updated."
   }
 }

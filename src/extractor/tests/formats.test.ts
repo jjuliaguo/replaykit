@@ -1,5 +1,5 @@
 /**
- * Real-world log shapes, pasted as-is. Each sample is SYNTHETIC but shaped
+ * Real-world log shapes, pasted as-is. Each sample is hand-written but shaped
  * like the platform's documented output. The point is the whole chain:
  * read the format, then detect the failure, without any manual conversion.
  */

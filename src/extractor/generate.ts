@@ -290,13 +290,12 @@ export function generateFixture(log: CallLog, findings: Finding[], options: Gene
   const { tools: toolDefs, inferred } = toolDefinitions(log, findings);
   const tools = [...new Set(findings.map((f) => f.toolName).filter((t): t is string => !!t))];
   const types = [...new Set(findings.map((f) => f.type))];
-  const label = log.kind === "synthetic" ? "SYNTHETIC: " : "";
   const finalAgentMessage = [...log.events].reverse().find((e) => e.type === "message" && e.role === "assistant");
 
   const fixture = {
     schemaVersion: FIXTURE_SCHEMA_VERSION,
     id: slug(log.id),
-    name: `${label}${types.join(" + ")}${tools.length ? ` (${tools.join(", ")})` : ""}`,
+    name: `${types.join(" + ")}${tools.length ? ` (${tools.join(", ")})` : ""}`,
     description: findings.map((f) => f.summary).join("\n"),
     source: {
       provider: log.provider,

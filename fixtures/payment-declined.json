@@ -1,12 +1,12 @@
 {
   "schemaVersion": "1.0",
-  "id": "synthetic-payment-declined-001",
-  "name": "SYNTHETIC: agent says a payment went through after the processor declined it",
+  "id": "payment-declined-001",
+  "name": "agent says a payment went through after the processor declined it",
   "description": "Hand-written example, not real Bland data. Shows ReplayKit is not appointment-specific. capture_payment returned HTTP 200 with ok:false.",
   "source": {
-    "provider": "synthetic",
+    "provider": "replaykit",
     "kind": "synthetic",
-    "callLogId": "synthetic-payment-declined-001",
+    "callLogId": "payment-declined-001",
     "capturedAt": "2026-10-15T09:10:00Z",
     "extractedAt": "2026-10-15T09:10:00Z",
     "extractor": { "name": "hand-written", "version": "0.0.0" }

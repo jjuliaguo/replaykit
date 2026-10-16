@@ -116,7 +116,7 @@ Not verified: the Docker image itself, since Docker isn't installed here, and a 
 
 ## Public-demo notes
 
-- **No secrets.** The API holds no keys and makes no model or network calls. All data is synthetic.
+- **No secrets in the code.** If the LLM fallback is on, the OpenAI key lives only in Vercel's environment variables.
 - **Endpoints visitors can call.** Anyone can call the API's read endpoints, plus `extract`, `replay`, and `e2e`. Request bodies are capped at 2 MB, and calls are rate-limited per IP. The limiter is in memory, so it is per instance and resets on redeploy.
 - **Imports stay in the browser.** Pasted call logs are analyzed by the API and stored only in the visitor's tab.
 - **Recommended Railway setting.** Use one instance. Scaling out would give each instance its own rate-limit counters.

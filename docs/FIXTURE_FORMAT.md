@@ -4,7 +4,7 @@ Owner: Claude (extractor side). Consumer: Cursor (replay engine).
 
 - TypeScript + Zod: `src/shared/types.ts` (re-exports `json.ts`, `call-log.ts`, `fixture.ts`). Use `parseFixture(json)` to load.
 - JSON Schema (language-neutral): `schemas/fixture.schema.json`, `schemas/call-log.schema.json`. Regenerate with `npm run schema`.
-- Example: `fixtures/booking-unavailable.json` (SYNTHETIC).
+- Example: `fixtures/booking-unavailable.json`.
 
 ## Shape
 

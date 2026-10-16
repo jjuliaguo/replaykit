@@ -117,7 +117,7 @@ export function TestsPage({ route, calls, imported }: { route: Route; calls: Cal
               selected={selected}
               title={f.ref}
               sub={f.valid ? `${f.origin} · ${f.failures.join(" + ") || "no failures listed"}` : `invalid: ${f.error ?? ""}`}
-              badge={f.valid ? <Badge tone={f.kind === "synthetic" ? "warn" : "ok"}>{f.kind}</Badge> : <Badge tone="err">invalid</Badge>}
+              badge={f.valid ? undefined : <Badge tone="err">invalid</Badge>}
             />
           ))}
         </ListGroup>

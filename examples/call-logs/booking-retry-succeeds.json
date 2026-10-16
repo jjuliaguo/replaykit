@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
-  "id": "synthetic-booking-retry-succeeds",
-  "provider": "synthetic",
+  "id": "booking-retry-succeeds",
+  "provider": "replaykit",
   "kind": "synthetic",
-  "notes": "SYNTHETIC negative control: the first slot fails, the agent retries with another time, the retry succeeds, and the agent confirms the second booking. No failure should be reported.",
+  "notes": "Negative control: the first slot fails, the agent retries with another time, the retry succeeds, and the agent confirms the second booking. No failure should be reported.",
   "tools": [{ "name": "book_appointment", "description": "Books an appointment slot for the caller." }],
   "events": [
     { "type": "message", "role": "user", "content": "Book me for Friday at 3, or 4 if 3 is taken." },

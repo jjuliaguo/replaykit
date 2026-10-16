@@ -37,7 +37,7 @@ Then open http://127.0.0.1:4321. Use `npm run web -- --port 4322` if that port i
 
 ## Using the app
 
-1. **Call log.** Pick a synthetic example or paste a log, then select **Detect failures**.
+1. **Call log.** Pick an example or paste a log, then select **Detect failures**.
 2. **Failures and test.** Review the findings, their evidence, and the generated regression test. Select **Replay this test**.
 3. **Replay and evaluate.** Pick agents and select **Run replay**. Results show per-agent pass or fail, a baseline-versus-candidate comparison, each expectation with its reason, and Cursor's full HTML report.
 
@@ -75,4 +75,4 @@ The app was also driven in a browser end to end, including a check at phone widt
 - **Cursor's fixed stand-in fails the refund fixture.** The `honor` stand-in calls workflow-required tools only when a fixture has no recorded interactions. The refund fixture records a `lookup_order` call, so the stand-in replays that and never calls the required `issue_refund`. Cursor's evaluator correctly fails it. This is a limit of Cursor's demo agent, not of the fixture contract, and it was left unchanged.
 - **The stand-in also said "I can confirm that this completed"** in that run, and Cursor's `no_success_claim` check passed it. The check found no claim about `issue_refund` in that sentence. Claude's extractor would count that sentence as a success claim. The two claim detectors differ in wording coverage, and aligning them is follow-up work.
 - **Agents are stand-ins.** Running a real agent needs a live runner. Cursor's `--live` path deliberately refuses, and the web app offers no live option.
-- **Synthetic data only.** Accuracy on real Bland calls is unmeasured.
+- **Not yet run on real calls.** Accuracy on real Bland calls is unmeasured.

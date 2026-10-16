@@ -1,12 +1,12 @@
 {
   "schemaVersion": "1.0",
-  "id": "synthetic-booking-false-confirmation",
-  "name": "SYNTHETIC: false_success_claim (book_appointment)",
+  "id": "booking-false-confirmation",
+  "name": "false_success_claim (book_appointment)",
   "description": "book_appointment reported failure (success is false), but the agent told the user it succeeded: \"Your appointment is confirmed for Friday at 3 PM.\"",
   "source": {
-    "provider": "synthetic",
+    "provider": "replaykit",
     "kind": "synthetic",
-    "callLogId": "synthetic-booking-false-confirmation",
+    "callLogId": "booking-false-confirmation",
     "capturedAt": "2026-10-15T14:02:11Z",
     "extractedAt": "2026-10-15T00:00:00.000Z",
     "extractor": {
@@ -232,6 +232,6 @@
     }
   ],
   "metadata": {
-    "notes": "SYNTHETIC example, hand-written to mirror a Bland webhook call. Not real customer data."
+    "notes": "Mirrors a Bland webhook call."
   }
 }

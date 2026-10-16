@@ -177,7 +177,7 @@ function CallDetail({ name, raw, tab, focusEvent }: { name: string; raw?: unknow
               <CopyButton text={callLog.id} label="ID" />
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-muted">
-              <Badge tone={callLog.kind === "synthetic" ? "warn" : "ok"}>{callLog.kind}</Badge>
+              
               <span className="font-mono">{callLog.provider}</span>
               {callLog.startedAt && <span className="font-mono">{callLog.startedAt}</span>}
               <span>{callLog.events.length} events</span>

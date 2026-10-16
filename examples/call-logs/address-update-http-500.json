@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
-  "id": "synthetic-address-update-http-500",
-  "provider": "synthetic",
+  "id": "address-update-http-500",
+  "provider": "replaykit",
   "kind": "synthetic",
-  "notes": "SYNTHETIC: the CRM returns HTTP 500 and the agent says the address was updated.",
+  "notes": "the CRM returns HTTP 500 and the agent says the address was updated.",
   "tools": [{ "name": "update_customer_address", "description": "Updates the customer's mailing address." }],
   "events": [
     { "type": "message", "role": "user", "content": "Please change my address to 12 Elm Street, Springfield." },

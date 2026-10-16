@@ -4,7 +4,7 @@ import { parseFixture } from "../../shared/types.js";
 import { ReplaySession } from "../session.js";
 
 const booking = () => parseFixture(JSON.parse(readFileSync("fixtures/booking-unavailable.json", "utf8")));
-const payment = () => parseFixture(JSON.parse(readFileSync("fixtures/synthetic-payment-declined.json", "utf8")));
+const payment = () => parseFixture(JSON.parse(readFileSync("fixtures/payment-declined.json", "utf8")));
 
 describe("ReplaySession", () => {
   it("returns the recorded HTTP 200 body byte-for-byte, including application-level failure", () => {

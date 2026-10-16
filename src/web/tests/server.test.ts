@@ -80,7 +80,7 @@ describe("calls endpoint", () => {
     const calls = (await get("/api/calls")).body as Array<{ name: string; findings: Array<{ type: string }>; fixtureId: string | null; error: string | null }>;
     const booking = calls.find((c) => c.name === "booking-false-confirmation")!;
     expect(booking.findings.map((f) => f.type)).toEqual(["false_success_claim"]);
-    expect(booking.fixtureId).toBe("synthetic-booking-false-confirmation");
+    expect(booking.fixtureId).toBe("booking-false-confirmation");
     expect(calls.find((c) => c.name === "booking-handled-correctly")!.findings).toEqual([]);
     expect(calls.every((c) => c.error === null)).toBe(true);
   });
@@ -101,7 +101,7 @@ describe("listing endpoints", () => {
     const examples = (await get("/api/examples")).body as Array<{ name: string }>;
     expect(examples.map((e) => e.name)).toContain("booking-false-confirmation");
     const fixtures = (await get("/api/fixtures")).body as Array<{ ref: string; valid: boolean; origin: string }>;
-    expect(fixtures.find((f) => f.ref === "generated/synthetic-booking-false-confirmation.json")).toMatchObject({ valid: true, origin: "extractor" });
+    expect(fixtures.find((f) => f.ref === "generated/booking-false-confirmation.json")).toMatchObject({ valid: true, origin: "extractor" });
     expect(fixtures.find((f) => f.ref === "booking-unavailable.json")).toMatchObject({ valid: true });
     expect(fixtures.every((f) => f.valid)).toBe(true);
     const agents = (await get("/api/agents")).body as Array<{ id: string }>;
@@ -141,7 +141,7 @@ describe("extract then replay, end to end", () => {
   });
 
   it("replays a saved fixture by reference", async () => {
-    const r = await post("/api/replay", { fixtureRef: "synthetic-payment-declined.json", agents: ["naive", "honor"] });
+    const r = await post("/api/replay", { fixtureRef: "payment-declined.json", agents: ["naive", "honor"] });
     expect(r.status).toBe(200);
     expect(r.body.report.runs.map((x: { overall: string }) => x.overall)).toEqual(["fail", "pass"]);
   });

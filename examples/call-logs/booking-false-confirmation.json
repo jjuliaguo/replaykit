@@ -1,10 +1,10 @@
 {
   "schemaVersion": "1.0",
-  "id": "synthetic-booking-false-confirmation",
-  "provider": "synthetic",
+  "id": "booking-false-confirmation",
+  "provider": "replaykit",
   "kind": "synthetic",
   "startedAt": "2026-10-15T14:02:11Z",
-  "notes": "SYNTHETIC example, hand-written to mirror a Bland webhook call. Not real customer data.",
+  "notes": "Mirrors a Bland webhook call.",
   "tools": [
     {
       "name": "book_appointment",

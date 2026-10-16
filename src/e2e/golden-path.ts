@@ -106,7 +106,7 @@ export async function runGoldenPath(options: GoldenPathOptions): Promise<GoldenP
     owner: "input",
     status: "pass",
     detail:
-      `${ex.callLog.id}: ${ex.callLog.events.length} events, ${toolResults} tool result(s), ${ex.callLog.kind} data from ${ex.callLog.provider}.` +
+      `${ex.callLog.id}: ${ex.callLog.events.length} events, ${toolResults} tool result(s).` +
       (ex.callLog.notes && ex.callLog.kind !== "synthetic" ? ` ${ex.callLog.notes}` : ""),
     checks: [
       { label: "format recognized", expected: "a supported format", actual: ex.callLog.provider, ok: true },

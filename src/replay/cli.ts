@@ -96,8 +96,8 @@ function parseAgents(raw: string | undefined, fallback: string): AgentSpec[] {
 
 async function demo(outDir: string): Promise<void> {
   const booking = loadFixtureFile(resolve("fixtures/booking-unavailable.json"));
-  const payment = loadFixtureFile(resolve("fixtures/synthetic-payment-declined.json"));
-  const skip = loadFixtureFile(resolve("fixtures/synthetic-unverified-cancel.json"));
+  const payment = loadFixtureFile(resolve("fixtures/payment-declined.json"));
+  const skip = loadFixtureFile(resolve("fixtures/unverified-cancel.json"));
 
   const bookingReport = await runReplaySuite(booking, [
     { type: "original" },
@@ -155,7 +155,7 @@ function indexHtml(entries: Array<{ title: string; file: string; overall: string
 <style>body{font-family:Segoe UI,sans-serif;background:#0f1419;color:#e7eef7;margin:40px}a{color:#7aa2ff}li{margin:8px 0}</style>
 </head><body>
 <h1>ReplayKit offline demo</h1>
-<p>Synthetic fixtures only. No model API calls were made.</p>
+<p>No model API calls were made.</p>
 <ul>
 ${entries.map((e) => `<li><a href="${e.file}">${escape(e.title)}</a> — candidate ${e.overall}</li>`).join("")}
 </ul>

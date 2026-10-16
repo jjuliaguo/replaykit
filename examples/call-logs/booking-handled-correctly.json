@@ -1,9 +1,9 @@
 {
   "schemaVersion": "1.0",
-  "id": "synthetic-booking-handled-correctly",
-  "provider": "synthetic",
+  "id": "booking-handled-correctly",
+  "provider": "replaykit",
   "kind": "synthetic",
-  "notes": "SYNTHETIC negative control: same failing tool response, but the agent handles it correctly. The extractor must report no failure.",
+  "notes": "Negative control: same failing tool response, but the agent handles it correctly. The extractor must report no failure.",
   "tools": [{ "name": "book_appointment", "description": "Books an appointment slot for the caller." }],
   "events": [
     { "type": "message", "role": "user", "content": "Can you book me in for Friday at 3 PM?" },

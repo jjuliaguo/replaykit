@@ -48,7 +48,7 @@ npm run demo    # replay-engine demo
 
 ## Important limitations
 
-This is an early prototype, not an official Bland product. All examples are synthetic and no real customer calls are included.
+This is an early prototype, not an official Bland product.
 
 ReplayKit can read Bland-like call data, but it has not been tested on a representative set of real Bland logs. It also uses deterministic stand-in agents instead of running a real Bland Pathway. The current replay covers tool responses and errors, not full voice timing, interruptions, or external side effects.
 

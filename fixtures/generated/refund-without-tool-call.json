@@ -1,12 +1,12 @@
 {
   "schemaVersion": "1.0",
-  "id": "synthetic-refund-without-tool-call",
-  "name": "SYNTHETIC: unverified_success_claim (issue_refund)",
+  "id": "refund-without-tool-call",
+  "name": "unverified_success_claim (issue_refund)",
   "description": "The agent claimed success (\"I've issued a full refund for order 55120; it should appear in 3 to 5 business days.\") without calling issue_refund, which the workflow requires.",
   "source": {
-    "provider": "synthetic",
+    "provider": "replaykit",
     "kind": "synthetic",
-    "callLogId": "synthetic-refund-without-tool-call",
+    "callLogId": "refund-without-tool-call",
     "extractedAt": "2026-10-15T00:00:00.000Z",
     "extractor": {
       "name": "replaykit-extractor",
@@ -147,6 +147,6 @@
     }
   ],
   "metadata": {
-    "notes": "SYNTHETIC: the agent claims a refund was issued but never calls issue_refund. The workflow declares issue_refund as required, which is what makes the missing call a failure."
+    "notes": "the agent claims a refund was issued but never calls issue_refund. The workflow declares issue_refund as required, which is what makes the missing call a failure."
   }
 }

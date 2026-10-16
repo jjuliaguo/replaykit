@@ -69,7 +69,7 @@ export function FixtureView({ fixture }: { fixture: ReplayFixture }) {
             <dd className="font-mono break-all">{fixture.id}</dd>
             <dt className="text-muted">Source</dt>
             <dd>
-              <Badge tone={fixture.source.kind === "synthetic" ? "warn" : "ok"}>{fixture.source.kind}</Badge> <span className="font-mono text-[12px]">{fixture.source.provider}</span>
+              <span className="font-mono text-[12px]">{fixture.source.provider}</span>
             </dd>
             <dt className="text-muted">Call log</dt>
             <dd className="font-mono break-all">{fixture.source.callLogId}</dd>
