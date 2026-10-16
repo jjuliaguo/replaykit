@@ -73,89 +73,55 @@ function SolutionVisual() {
   );
 }
 
+const STEPS: Array<[string, string]> = [
+  ["Read the call log", "Bland, Retell, Vapi, OpenAI or Anthropic messages, or a plain transcript."],
+  ["Find the contradiction", "The API said it failed; the agent said it worked."],
+  ["Replay the exact response", "A mock webhook serves the recorded status and body, on demand."],
+  ["Original agent fails", "Proof the test catches the bug."],
+  ["Fixed agent passes", "With no regressions. Stand-in agents here; with Bland, your updated Pathway."],
+];
+
 const STOPS: Stop[] = [
   {
     eyebrow: "The problem",
     title: "Agents say “done” when the API failed",
     body: (
       <p>
-        Voice agents act through tools: booking APIs, CRMs, payment processors. When a tool fails with a 500, a timeout, or a 200 that says <code>success: false</code>,
-        the agent can still tell the caller it worked. The call sounds fine, the caller hangs up believing it, and nothing flags it.
+        When a tool fails with a 500, a timeout, or a 200 that says <code>success: false</code>, the agent can still tell the caller it worked. Fixing that one call doesn't
+        help: you can't make the API fail the same way again to prove the fix, and the next prompt or model change can bring the bug back.
       </p>
     ),
     visual: <ProblemVisual />,
-  },
-  {
-    eyebrow: "Why it keeps happening",
-    title: "Fixing one call doesn't stop the next",
-    body: (
-      <>
-        <p>You can find the bad call and tweak the prompt. But you can't make the API fail the same way again on demand, so you can't prove the fix works.</p>
-        <p>And the next prompt, model, or Pathway change can quietly bring the bug back.</p>
-      </>
-    ),
   },
   {
     eyebrow: "The solution",
     title: "Turn every failure into a regression test",
     body: (
       <>
-        <p>
-          ReplayKit saves the exact API response from the failed call, plus rules for what the agent must and must not say. That test replays the same failure after every
-          change.
-        </p>
+        <p>ReplayKit saves the exact API response from the failed call, plus rules for what the agent must and must not say, and replays it after every change.</p>
         <Value />
       </>
     ),
     visual: <SolutionVisual />,
   },
   {
-    target: "examples",
-    eyebrow: "Try it",
-    title: "Start from a failed call",
+    target: "steps",
+    eyebrow: "How it works",
+    title: "One failed call, five steps, run live",
     body: (
-      <p>
-        Each card is a call where the agent got it wrong. Pick one, or switch to <b>Paste a call log</b> to use your own. The five steps below run live on every pick.
-      </p>
-    ),
-  },
-  {
-    target: "step-capture",
-    eyebrow: "Step 1 of 5",
-    title: "Read the call log",
-    body: <p>ReplayKit reads Bland, Retell, and Vapi call objects, OpenAI or Anthropic message lists, and plain transcripts, and finds each tool call and the response it got.</p>,
-  },
-  {
-    target: "step-extract",
-    eyebrow: "Step 2 of 5",
-    title: "Find where the agent contradicted the API",
-    body: (
-      <p>
-        For example, the booking API returned <code>success: false</code> while the agent confirmed the appointment. ReplayKit writes that into a test: the agent must not
-        claim success, and must tell the caller it failed.
-      </p>
-    ),
-  },
-  {
-    target: "step-webhook",
-    eyebrow: "Step 3 of 5",
-    title: "Replay the exact API response",
-    body: <p>A mock webhook serves the recorded response, with the same status and the same body. The failure now happens again on demand, without touching the real API.</p>,
-  },
-  {
-    target: "step-reproduce",
-    eyebrow: "Step 4 of 5",
-    title: "Prove the test catches the bug",
-    body: <p>The original agent runs against the replayed failure and fails the test again. A test that can't fail proves nothing.</p>,
-  },
-  {
-    target: "step-verify",
-    eyebrow: "Step 5 of 5",
-    title: "Prove the fix works",
-    body: (
-      <p>
-        A fixed agent runs against the same failure and passes, with no regressions. The agents here are stand-ins; with Bland, this would be your updated Pathway.
-      </p>
+      <>
+        <p>Pick an example call above, or paste your own log. Each run does this:</p>
+        <ol className="space-y-2">
+          {STEPS.map(([title, detail], k) => (
+            <li key={title} className="tour-in flex gap-2.5" style={delay(0.2 + k * 0.12)}>
+              <span className="grid size-5 shrink-0 place-items-center rounded-full bg-ink font-mono text-[11px] text-canvas">{k + 1}</span>
+              <span>
+                <b className="font-medium text-ink">{title}.</b> {detail}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </>
     ),
   },
   {
@@ -168,14 +134,9 @@ const STOPS: Stop[] = [
         <p className="tour-in border-l-2 border-brand pl-3 font-medium text-ink" style={delay(0.25)}>
           That's the value: regression testing, not recovering individual calls.
         </p>
+        <p className="text-muted">Try your own call with Import log. Reopen this tour from the Tour button.</p>
       </>
     ),
-  },
-  {
-    target: "import",
-    eyebrow: "Your turn",
-    title: "Try your own call",
-    body: <p>Paste a call log on the Overview, or use Import log. You can reopen this tour any time from the Tour button at the top.</p>,
   },
 ];
 

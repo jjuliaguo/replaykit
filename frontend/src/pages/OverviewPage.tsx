@@ -244,9 +244,9 @@ export function OverviewPage({ calls }: { calls: CallSummary[] | null }) {
               <div className="mt-1 text-[13px] text-ink-2">{resultTitle}</div>
             </div>
 
-            <ol className="mt-5">
+            <ol className="mt-5" data-tour="steps">
               {result.steps.map((step, i) => (
-                <li key={step.id} className="relative flex gap-3 pb-5 sm:gap-4" data-tour={`step-${step.id}`}>
+                <li key={step.id} className="relative flex gap-3 pb-5 sm:gap-4">
                   {i < result.steps.length - 1 && <span className="absolute top-7 bottom-0 left-[11px] w-px bg-line-strong" aria-hidden />}
                   <StatusIcon status={step.status} />
                   <div className="min-w-0 flex-1 rounded-md border border-line bg-panel">
