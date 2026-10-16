@@ -29,7 +29,7 @@ export interface ClaimAnalysis {
 }
 
 const COMPLETED_VERBS =
-  "confirmed|booked|scheduled|reserved|processed|completed|submitted|sent|cancell?ed|updated|created|placed|approved|issued|refunded|registered|transferred|paid|charged|delivered|shipped|added|saved|changed|rescheduled|activated|moved|switched|renewed|extended|upgraded|unlocked|reset|enrolled";
+  "confirmed|booked|scheduled|reserved|processed|completed|submitted|sent|cancell?ed|updated|created|placed|approved|issued|refunded|registered|transferred|paid|charged|delivered|shipped|added|saved|changed|rescheduled|activated|moved|switched|renewed|extended|upgraded|unlocked|reset|enrolled|frozen|blocked|locked|suspended|deactivated|reactivated|filed|logged|dispatched|ordered|replaced|returned|credited|waived|applied";
 
 const SUCCESS_PATTERNS: RegExp[] = [
   new RegExp(`\\b(?:is|are|was|were|has been|have been|'s|'re)\\s+(?:now\\s+|all\\s+|successfully\\s+)?(?:${COMPLETED_VERBS})\\b`, "i"),

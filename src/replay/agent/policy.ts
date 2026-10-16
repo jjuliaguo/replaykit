@@ -1,3 +1,4 @@
+import { classifyToolResult } from "../../extractor/analysis/tool-outcome.js";
 import { isJsonObject, type JsonValue } from "../../shared/json.js";
 import type { ReplayFixture } from "../../shared/fixture.js";
 import { ReplaySession, resultPayload } from "../session.js";
@@ -95,9 +96,22 @@ function honorMessage(fixture: ReplayFixture, calls: ReplayToolCall[]): string {
   return `I wasn't able to complete ${label}. ${parts.join(" ")} Nothing is confirmed. If you'd like, we can try a different option.`;
 }
 
+/** The extractor's verdict on a replayed response, so both halves agree on what a failure is. */
+function outcomeOf(result: ToolInvokeResult) {
+  if (result.kind !== "response") return null;
+  return classifyToolResult({
+    type: "tool_result",
+    callId: result.interactionId,
+    response: { ...(result.status !== undefined ? { status: result.status } : {}), ...(result.body !== undefined ? { body: result.body } : {}) },
+  });
+}
+
 export function indicatesFailure(result: ToolInvokeResult): boolean {
   if (result.kind === "error" || result.kind === "fail_run" || result.kind === "unmatched") return true;
   if (result.status !== undefined && result.status >= 400) return true;
+  // Same rules the extractor uses: success/ok flags, failure statuses ("rejected", "FAILED"),
+  // error fields, nested flags, and common non-English field names.
+  if (outcomeOf(result)?.outcome === "failure") return true;
   const body = result.body;
   if (!isJsonObject(body)) return false;
   if (body.success === false || body.ok === false) return true;
@@ -111,6 +125,8 @@ function failureDetail(result: ToolInvokeResult): string | undefined {
   if (result.kind === "response" && isJsonObject(result.body) && typeof result.body.message === "string") {
     return result.body.message;
   }
+  const message = outcomeOf(result)?.messages[0];
+  if (message) return message;
   if (result.kind === "unmatched") return "no recorded interaction matched";
   return undefined;
 }
