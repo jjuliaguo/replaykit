@@ -154,7 +154,7 @@ export function OverviewPage({ calls }: { calls: CallSummary[] | null }) {
           original agent fails and a fixed agent passes.
         </p>
 
-        <div className="mt-5 rounded-md border border-line bg-panel">
+        <div className="mt-5 rounded-md border border-line bg-panel" data-tour="examples">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3 py-2.5 sm:px-4">
             <Segmented
               value={mode}
@@ -246,7 +246,7 @@ export function OverviewPage({ calls }: { calls: CallSummary[] | null }) {
 
             <ol className="mt-5">
               {result.steps.map((step, i) => (
-                <li key={step.id} className="relative flex gap-3 pb-5 sm:gap-4">
+                <li key={step.id} className="relative flex gap-3 pb-5 sm:gap-4" data-tour={`step-${step.id}`}>
                   {i < result.steps.length - 1 && <span className="absolute top-7 bottom-0 left-[11px] w-px bg-line-strong" aria-hidden />}
                   <StatusIcon status={step.status} />
                   <div className="min-w-0 flex-1 rounded-md border border-line bg-panel">

@@ -1,7 +1,8 @@
-import { RefreshCw, Upload } from "lucide-react";
+import { Compass, RefreshCw, Upload } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { api, type CallSummary } from "./api";
 import { Shell } from "./components/Shell";
+import { Tour } from "./components/Tour";
 import { Button, Tabs } from "./components/ui";
 import { CallsPage, type ImportedLog } from "./pages/CallsPage";
 import { ImportPage } from "./pages/ImportPage";
@@ -17,6 +18,8 @@ const TITLES: Record<string, string> = {
   tests: "Regression tests",
   import: "Import call log",
 };
+
+const TOUR_SEEN = "replaykit-tour-seen";
 
 export function App() {
   const route = useRoute();
@@ -34,19 +37,50 @@ export function App() {
   const allSummaries = [...Object.values(imported).map((i) => i.summary), ...(calls ?? [])];
   const issueCount = allSummaries.reduce((n, c) => n + c.findings.length, 0);
 
+  // First visit to the Overview opens the tour; the Tour button reopens it.
+  const [tour, setTour] = useState(() => {
+    try {
+      return section === "overview" && !localStorage.getItem(TOUR_SEEN);
+    } catch {
+      return false;
+    }
+  });
+  const closeTour = () => {
+    setTour(false);
+    try {
+      localStorage.setItem(TOUR_SEEN, "1");
+    } catch {
+      /* storage unavailable: the tour may show again next visit */
+    }
+  };
+
   return (
     <Shell
       section={section}
       issueCount={calls ? issueCount : undefined}
       topTabs={<Tabs tabs={[{ id: section, label: TITLES[section] }]} value={section} onChange={() => {}} />}
+      side={tour ? <Tour onClose={closeTour} /> : null}
       actions={
         <>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              navigate(["overview"]);
+              setTour(true);
+            }}
+            title="Take a guided tour"
+            aria-label="Take a guided tour"
+          >
+            <Compass size={13} />
+            <span className="hidden sm:inline">Tour</span>
+          </Button>
           <Button variant="ghost" size="sm" onClick={load} title="Re-run the extractor over every call log">
             <RefreshCw size={13} />
             <span className="hidden sm:inline">Re-analyze</span>
           </Button>
           {section !== "import" && (
-            <Button variant="primary" onClick={() => navigate(["import"])} title="Import a call log" aria-label="Import a call log">
+            <Button variant="primary" onClick={() => navigate(["import"])} title="Import a call log" aria-label="Import a call log" data-tour="import">
               <Upload size={13} />
               <span className="hidden sm:inline">Import log</span>
             </Button>

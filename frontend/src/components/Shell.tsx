@@ -16,12 +16,15 @@ export function Shell({
   issueCount,
   topTabs,
   actions,
+  side,
   children,
 }: {
   section: string;
   issueCount?: number;
   topTabs: ReactNode;
   actions?: ReactNode;
+  /** A panel docked to the right of the page, e.g. the guided tour. */
+  side?: ReactNode;
   children: ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -90,6 +93,7 @@ export function Shell({
                 <a
                   key={item.id}
                   href={href([item.id])}
+                  data-tour={`nav-${item.id}`}
                   title={narrow ? item.label : undefined}
                   className={cx(
                     "my-0.5 flex h-10 items-center gap-2.5 rounded-md border px-2 text-[13.5px] md:h-9",
@@ -152,6 +156,7 @@ export function Shell({
         </header>
         <main className="min-h-0 flex-1 overflow-hidden">{children}</main>
       </div>
+      {side}
     </div>
   );
 }
