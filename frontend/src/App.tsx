@@ -19,8 +19,6 @@ const TITLES: Record<string, string> = {
   import: "Import call log",
 };
 
-const TOUR_SEEN = "replaykit-tour-seen";
-
 export function App() {
   const route = useRoute();
   const section = route.path[0] && TITLES[route.path[0]] ? route.path[0] : "overview";
@@ -37,22 +35,9 @@ export function App() {
   const allSummaries = [...Object.values(imported).map((i) => i.summary), ...(calls ?? [])];
   const issueCount = allSummaries.reduce((n, c) => n + c.findings.length, 0);
 
-  // First visit to the Overview opens the tour; the Tour button reopens it.
-  const [tour, setTour] = useState(() => {
-    try {
-      return section === "overview" && !localStorage.getItem(TOUR_SEEN);
-    } catch {
-      return false;
-    }
-  });
-  const closeTour = () => {
-    setTour(false);
-    try {
-      localStorage.setItem(TOUR_SEEN, "1");
-    } catch {
-      /* storage unavailable: the tour may show again next visit */
-    }
-  };
+  // Every load of the Overview opens the tour; the Tour button reopens it.
+  const [tour, setTour] = useState(section === "overview");
+  const closeTour = () => setTour(false);
 
   return (
     <Shell
