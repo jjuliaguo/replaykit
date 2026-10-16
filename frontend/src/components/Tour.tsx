@@ -21,9 +21,12 @@ const delay = (s: number): CSSProperties => ({ animationDelay: `${s}s` });
 
 function Value() {
   return (
-    <p className="tour-in border-l-2 border-brand pl-3 text-[13.5px] font-medium text-ink" style={delay(0.25)}>
-      The point isn't recovering one call. It's keeping the next 10,000 calls from failing the same way.
-    </p>
+    <div className="tour-in rounded-md border-l-2 border-brand bg-well px-3 py-2.5" style={delay(0.35)}>
+      <div className="text-[11px] font-medium tracking-wide text-brand uppercase">The end goal</div>
+      <p className="mt-1 text-[14px] leading-snug font-semibold text-ink">
+        Regression testing, not recovering individual calls: keeping the next 10,000 calls from failing the same way.
+      </p>
+    </div>
   );
 }
 
@@ -105,7 +108,6 @@ const STOPS: Stop[] = [
           ReplayKit captures the failed call's conditions, the conversation and the exact API responses, as a test with rules for what the agent must and must not do. The
           same failure then replays on demand, after every change.
         </p>
-        <Value />
       </>
     ),
     visual: <SolutionVisual />,
@@ -137,10 +139,8 @@ const STOPS: Stop[] = [
     body: (
       <>
         <p>Saved tests live under Regression tests. Run them before each prompt, model, or pathway release, and a bug you've caught once can't ship again unnoticed.</p>
-        <p className="tour-in border-l-2 border-brand pl-3 font-medium text-ink" style={delay(0.25)}>
-          That's the value: regression testing, not recovering individual calls.
-        </p>
         <p className="text-muted">Try your own call with Import log. Reopen this tour from the Tour button.</p>
+        <Value />
       </>
     ),
   },
