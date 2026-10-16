@@ -74,9 +74,13 @@ export function OverviewPage({ calls }: { calls: CallSummary[] | null }) {
   const [mode, setMode] = useState<"examples" | "paste">("examples");
   const [example, setExample] = useState("booking-false-confirmation");
   const [pasted, setPasted] = useState("");
-  const [result, setResult] = useState<(E2EResponse & { source: Source }) | null>(null);
+  // Each tab keeps its own result: the Paste tab shows nothing until a pasted log has been run.
+  const [exampleResult, setExampleResult] = useState<(E2EResponse & { source: Source }) | null>(null);
+  const [pastedResult, setPastedResult] = useState<(E2EResponse & { source: Source }) | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [running, setRunning] = useState(false);
+  const [runningFor, setRunningFor] = useState<"examples" | "paste" | null>(null);
+  const result = mode === "examples" ? exampleResult : pastedResult;
+  const running = runningFor === mode;
   const [showControls, setShowControls] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
   const userRan = useRef(false);
@@ -91,14 +95,14 @@ export function OverviewPage({ calls }: { calls: CallSummary[] | null }) {
   const runExample = async (name: string, byUser = true) => {
     userRan.current = byUser;
     setExample(name);
-    setRunning(true);
+    setRunningFor("examples");
     setError(null);
     try {
-      setResult({ ...(await api.e2e({ example: name })), source: { kind: "example", name } });
+      setExampleResult({ ...(await api.e2e({ example: name })), source: { kind: "example", name } });
     } catch (e) {
       setError((e as Error).message);
     } finally {
-      setRunning(false);
+      setRunningFor(null);
     }
   };
 
@@ -111,15 +115,15 @@ export function OverviewPage({ calls }: { calls: CallSummary[] | null }) {
     } catch {
       /* not JSON: send the text as-is */
     }
-    setRunning(true);
+    setRunningFor("paste");
     setError(null);
     try {
       const r = await api.e2e({ log });
-      setResult({ ...r, source: { kind: "pasted", label: r.callLogId ?? "pasted log" } });
+      setPastedResult({ ...r, source: { kind: "pasted", label: r.callLogId ?? "pasted log" } });
     } catch (e) {
       setError((e as Error).message);
     } finally {
-      setRunning(false);
+      setRunningFor(null);
     }
   };
 
@@ -154,7 +158,10 @@ export function OverviewPage({ calls }: { calls: CallSummary[] | null }) {
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3 py-2.5 sm:px-4">
             <Segmented
               value={mode}
-              onChange={setMode}
+              onChange={(m) => {
+                setMode(m);
+                setError(null);
+              }}
               options={[
                 { id: "examples", label: "Example calls" },
                 { id: "paste", label: "Paste a call log" },
