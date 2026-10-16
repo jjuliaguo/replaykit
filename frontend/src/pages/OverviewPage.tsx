@@ -232,7 +232,6 @@ export function OverviewPage({ calls }: { calls: CallSummary[] | null }) {
                 <span className="font-mono text-[12px] text-muted">
                   {passed}/{result.steps.length} steps · {result.durationMs} ms
                 </span>
-                {result.fixture?.source.kind === "synthetic" && <Badge tone="warn">synthetic data</Badge>}
                 {running && <span className="text-[12px] text-muted">re-running…</span>}
               </div>
               <div className="mt-1 text-[13px] text-ink-2">{resultTitle}</div>
