@@ -112,18 +112,6 @@ export function Shell({
           </div>
         ))}
       </nav>
-
-      <div className={cx("flex items-center gap-2 border-t border-line/70 px-3 py-3", narrow && "justify-center px-0")}>
-        <span className="grid size-6 shrink-0 place-items-center rounded bg-ok font-mono text-[11px] font-bold text-white" title={IS_HOSTED ? "Public demo" : "Offline"}>
-          {IS_HOSTED ? "P" : "O"}
-        </span>
-        {!narrow && (
-          <div className="min-w-0 leading-tight">
-            <div className="text-[13px] font-medium">{IS_HOSTED ? "Public demo" : "Offline mode"}</div>
-            {!IS_HOSTED && <div className="text-[12px] text-muted">No network or model calls</div>}
-          </div>
-        )}
-      </div>
     </>
   );
 

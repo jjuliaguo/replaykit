@@ -91,8 +91,7 @@ CORS_ORIGINS=https://replaykit-git-deploy-setup-<your-scope>.vercel.app,https://
 
 ## 4. Test
 
-Open the Vercel URL. The Overview page runs the end-to-end test on load and should show **End-to-end pass, 5/5 steps**. The sidebar footer should read **Public demo**.
-
+Open the Vercel URL. The Overview page runs the end-to-end test on load and should show **End-to-end pass, 5/5 steps**.
 If it fails:
 
 | Symptom | Likely cause |
