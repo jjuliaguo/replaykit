@@ -30,13 +30,14 @@ function Value() {
 function ProblemVisual() {
   return (
     <div className="space-y-2 rounded-md border border-line bg-canvas p-3 text-[12.5px]">
+      <div className="text-[11px] font-medium tracking-wide text-subtle uppercase">One example</div>
       <div className="tour-in" style={delay(0.2)}>
         <span className="block text-subtle">Caller</span>
         <div className="mt-0.5 inline-block rounded-md bg-well px-2.5 py-1.5">Can you move my appointment to Friday?</div>
       </div>
       <div className="tour-in font-mono text-[11.5px]" style={delay(0.9)}>
         <span className="text-muted">POST /reschedule → </span>
-        <span className="rounded bg-err-bg px-1 text-err">200 {"{ \"success\": false }"}</span>
+        <span className="rounded bg-err-bg px-1 whitespace-nowrap text-err">200 {"{success: false}"}</span>
       </div>
       <div className="tour-in" style={delay(1.6)}>
         <span className="block text-subtle">Agent</span>
@@ -84,12 +85,15 @@ const STEPS: Array<[string, string]> = [
 const STOPS: Stop[] = [
   {
     eyebrow: "The problem",
-    title: "Agents say “done” when the API failed",
+    title: "Voice-agent failures can't be reproduced",
     body: (
-      <p>
-        When a tool fails with a 500, a timeout, or a 200 that says <code>success: false</code>, the agent can still tell the caller it worked. Fixing that one call doesn't
-        help: you can't make the API fail the same way again to prove the fix, and the next prompt or model change can bring the bug back.
-      </p>
+      <>
+        <p>
+          When an agent gets a real call wrong, the conditions behind it are gone: what the caller said, what each API returned, the path the agent took. Engineers patch the
+          prompt and hope.
+        </p>
+        <p>There's no way to prove the fix works, and the next prompt, model, or Pathway change can quietly bring the same failure back.</p>
+      </>
     ),
     visual: <ProblemVisual />,
   },
@@ -98,7 +102,10 @@ const STOPS: Stop[] = [
     title: "Turn every failure into a regression test",
     body: (
       <>
-        <p>ReplayKit saves the exact API response from the failed call, plus rules for what the agent must and must not say, and replays it after every change.</p>
+        <p>
+          ReplayKit captures the failed call's conditions, the conversation and the exact API responses, as a test with rules for what the agent must and must not do. The
+          same failure then replays on demand, after every change.
+        </p>
         <Value />
       </>
     ),
