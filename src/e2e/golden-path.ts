@@ -99,6 +99,7 @@ export async function runGoldenPath(options: GoldenPathOptions): Promise<GoldenP
   }
   result.callLogId = ex.callLog.id;
   const toolResults = ex.callLog.events.filter((e) => e.type === "tool_result").length;
+  const agentTurns = ex.callLog.events.filter((e) => e.type === "message" && e.role === "assistant").length;
   steps.push({
     id: "capture",
     title: "Load call log",
@@ -134,7 +135,9 @@ export async function runGoldenPath(options: GoldenPathOptions): Promise<GoldenP
       ? `${ex.findings.map((f) => `${f.type} (${f.confidence})`).join(", ")}. Fixture ${fixture!.id} with ${fixture!.expectations.length} expectations.`
       : toolResults === 0
         ? "Nothing to test: this log has no tool calls or API responses, so there is nothing to check the agent's statements against. A regression test needs at least one recorded tool result."
-        : "No failure detected: the agent's replies are consistent with the API responses in this log, so there is no regression test to run.",
+        : agentTurns === 0
+          ? "Nothing to test: the log records the tool activity but nothing the agent said to the caller. ReplayKit tests the agent's behavior, so add the agent's replies (and ideally the caller's request) to the log."
+          : "No failure detected: the agent's replies are consistent with the API responses in this log, so there is no regression test to run.",
     checks: [
       { label: "findings", expected: "≥ 1", actual: String(ex.findings.length), ok: ex.findings.length > 0 },
       { label: "fixture valid against shared schema", expected: "yes", actual: schemaOk ? "yes" : "no", ok: schemaOk },

@@ -119,17 +119,20 @@ interface FieldStats {
   distinct: Set<string>;
   avgLen: number;
   numbers: number;
+  /** String values containing whitespace: speech, not identifiers like "reschedule_appointment". */
+  prose: number;
 }
 
 function stats(items: Array<Record<string, unknown>>): Map<string, FieldStats> {
   const m = new Map<string, FieldStats>();
   for (const it of items) {
     for (const [k, v] of Object.entries(it)) {
-      const s = m.get(k) ?? { presence: 0, strings: 0, distinct: new Set<string>(), avgLen: 0, numbers: 0 };
+      const s = m.get(k) ?? { presence: 0, strings: 0, distinct: new Set<string>(), avgLen: 0, numbers: 0, prose: 0 };
       s.presence++;
       if (typeof v === "string") {
         s.avgLen = (s.avgLen * s.strings + v.length) / (s.strings + 1);
         s.strings++;
+        if (/\s/.test(v.trim())) s.prose++;
         if (s.distinct.size < 50) s.distinct.add(v);
       } else if (typeof v === "number") s.numbers++;
       m.set(k, s);
@@ -151,8 +154,13 @@ const NAME_PREFS = {
   time: ["timestamp", "time", "created_at", "createdAt", "at", "ts", "t", "offset"],
 };
 
-function prefer(fields: Map<string, FieldStats>, names: string[], ok: (s: FieldStats, k: string) => boolean = () => true): string | null {
-  for (const n of names) for (const k of fields.keys()) if ((k === n || k.endsWith(`.${n}`) || k.endsWith(`_${n}`)) && ok(fields.get(k)!, k)) return k;
+function prefer(
+  fields: Map<string, FieldStats>,
+  names: string[],
+  ok: (s: FieldStats, k: string) => boolean = () => true,
+  suffix = false,
+): string | null {
+  for (const n of names) for (const k of fields.keys()) if ((k === n || k.endsWith(`.${n}`) || (suffix && k.endsWith(`_${n}`))) && ok(fields.get(k)!, k)) return k;
   return null;
 }
 
@@ -170,9 +178,10 @@ export function inferMappingFor(path: string, listIn: unknown[]): FieldMapping |
   const n = items.length;
   const lowCard = (s: FieldStats) => s.strings >= n * 0.5 && s.distinct.size <= Math.max(12, Math.ceil(n / 2)) && s.avgLen <= 40;
 
+  // Speech text is prose: a field of identifiers (tool names, ids) is never the text.
   const textField =
-    prefer(f, NAME_PREFS.text, (s) => s.strings >= 1 && s.avgLen >= 8) ??
-    [...f.entries()].filter(([, s]) => s.strings >= Math.max(1, n * 0.3) && s.avgLen >= 15).sort((a, b) => b[1].avgLen - a[1].avgLen)[0]?.[0] ??
+    prefer(f, NAME_PREFS.text, (s) => s.strings >= 1 && s.avgLen >= 8 && s.prose > 0) ??
+    [...f.entries()].filter(([, s]) => s.strings >= Math.max(1, n * 0.3) && s.avgLen >= 15 && s.prose >= s.strings * 0.5).sort((a, b) => b[1].avgLen - a[1].avgLen)[0]?.[0] ??
     null;
 
   // Kind / speaker: low-cardinality string fields whose values read as roles or event kinds.
@@ -205,9 +214,9 @@ export function inferMappingFor(path: string, listIn: unknown[]): FieldMapping |
     speakers: labelMap(speakerField),
     textField,
     toolNameField: prefer(f, NAME_PREFS.tool, (s, k) => k !== textField && k !== kindField && k !== speakerField && s.strings > 0 && s.avgLen <= 60),
-    argsField: prefer(f, NAME_PREFS.args, (_s, k) => k !== textField),
-    resultField: prefer(f, NAME_PREFS.result, (_s, k) => k !== textField),
-    statusField: prefer(f, NAME_PREFS.status, (s) => s.numbers > 0),
+    argsField: prefer(f, NAME_PREFS.args, (_s, k) => k !== textField, true),
+    resultField: prefer(f, NAME_PREFS.result, (_s, k) => k !== textField, true),
+    statusField: prefer(f, NAME_PREFS.status, (s) => s.numbers > 0, true),
     errorField: prefer(f, NAME_PREFS.error),
     callIdField: prefer(f, NAME_PREFS.callId, (_s, k) => k !== "id" || !!prefer(f, ["tool_call_id", "toolCallId"])),
     timeField: prefer(f, NAME_PREFS.time),

@@ -157,3 +157,29 @@ describe("LLM normalizer (grounded)", () => {
     expect(r.callLog.provider).not.toBe("read-by-llm");
   });
 });
+
+describe("tool-only event logs", () => {
+  const toolOnly = {
+    call_id: "test_001",
+    events: [
+      { type: "tool_call", tool: "reschedule_appointment", request: { appointment_id: "apt_123", new_date: "2026-10-16" } },
+      { type: "tool_response", tool: "reschedule_appointment", status: "error", error: "TIMEOUT", http_status: 504 },
+    ],
+  };
+
+  it("keeps the real tool name and doesn't mistake an argument for a call id", () => {
+    const log = toCallLog(toolOnly);
+    const call = log.events.find((e) => e.type === "tool_call");
+    expect(call).toMatchObject({ toolName: "reschedule_appointment", arguments: { appointment_id: "apt_123", new_date: "2026-10-16" } });
+    expect(call?.type === "tool_call" && call.callId).not.toBe("apt_123");
+    expect(log.events.find((e) => e.type === "tool_result")).toMatchObject({ toolName: "reschedule_appointment", error: { kind: "timeout" } });
+  });
+
+  it("finds the false claim once the agent's reply is in the log", () => {
+    const full = structuredClone(toolOnly) as { call_id: string; events: Array<Record<string, unknown>> };
+    full.events.unshift({ type: "user_message", content: "Can you move my appointment to October 16th?" });
+    full.events.push({ type: "agent_message", content: "Done! Your appointment has been moved to October 16th." });
+    const r = extract(full);
+    expect(r.findings[0]).toMatchObject({ type: "false_success_claim", toolName: "reschedule_appointment", confidence: "high" });
+  });
+});
