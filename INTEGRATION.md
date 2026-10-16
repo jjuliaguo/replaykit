@@ -7,8 +7,8 @@ This folder joins Claude's extractor and Cursor's replay engine, and adds a loca
 | Part | Source | Commit |
 | --- | --- | --- |
 | Shared fixture schema (`src/shared/`, `schemas/`) | Claude | `1a932b5` |
-| Extractor (`src/extractor/`, `examples/`, `fixtures/generated/`) | Claude, from `C:\Users\Julia\demo for wes`, branch `claude` | `34d4bd5` |
-| Replay engine (`src/replay/`, extra fixtures) | Cursor, from `C:\Users\Julia\Documents\replaykit-cursor`, branch `cursor` | `4d70ccf` |
+| Extractor (`src/extractor/`, `examples/`, `fixtures/generated/`) | Claude, branch `claude` | `34d4bd5` |
+| Replay engine (`src/replay/`, extra fixtures) | Cursor, branch `cursor` | `4d70ccf` |
 | Web app (`src/web/`) | Written for this integration | this branch |
 
 This folder is an independent clone on its own branch, `integrated`. The original repositories, worktrees, and branches were not modified, and push is disabled on every remote here.
