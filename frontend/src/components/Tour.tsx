@@ -51,7 +51,7 @@ function ProblemVisual() {
 }
 
 function SolutionVisual() {
-  const changes = ["Prompt edit", "Model swap", "Pathway change"];
+  const changes = ["Prompt edit", "Model swap", "Edited pathway"];
   return (
     <div className="rounded-md border border-line bg-canvas p-3 text-[12.5px]">
       <div className="tour-in flex items-center gap-2" style={delay(0.35)}>
@@ -79,7 +79,7 @@ const STEPS: Array<[string, string]> = [
   ["Find the contradiction", "The API said it failed; the agent said it worked."],
   ["Replay the exact response", "A mock webhook serves the recorded status and body, on demand."],
   ["Original agent fails", "Proof the test catches the bug."],
-  ["Fixed agent passes", "With no regressions. Stand-in agents here; with Bland, your updated Pathway."],
+  ["Fixed agent passes", "With no regressions. Stand-in agents here; with Bland, your updated pathway."],
 ];
 
 const STOPS: Stop[] = [
@@ -89,10 +89,9 @@ const STOPS: Stop[] = [
     body: (
       <>
         <p>
-          When an agent gets a real call wrong, the conditions behind it are gone: what the caller said, what each API returned, the path the agent took. Engineers patch the
-          prompt and hope.
+          When an agent gets a real call wrong, the conditions behind it are gone: what the caller said, what each API returned, the path the agent took.
         </p>
-        <p>There's no way to prove the fix works, and the next prompt, model, or Pathway change can quietly bring the same failure back.</p>
+        <p>There's no way to prove the fix works, and the next prompt, model, or pathway change can quietly bring the same failure back.</p>
       </>
     ),
     visual: <ProblemVisual />,
@@ -137,7 +136,7 @@ const STOPS: Stop[] = [
     title: "Every failure joins the suite",
     body: (
       <>
-        <p>Saved tests live under Regression tests. Run them before each prompt, model, or Pathway release, and a bug you've caught once can't ship again unnoticed.</p>
+        <p>Saved tests live under Regression tests. Run them before each prompt, model, or pathway release, and a bug you've caught once can't ship again unnoticed.</p>
         <p className="tour-in border-l-2 border-brand pl-3 font-medium text-ink" style={delay(0.25)}>
           That's the value: regression testing, not recovering individual calls.
         </p>
